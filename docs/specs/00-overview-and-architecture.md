@@ -1,6 +1,6 @@
 # pricewatch — Specification (MVP)
 
-> Source document for spec-driven development. Every requirement has a stable ID (`REQ-<AREA>-NNN`) and Given/When/Then acceptance criteria. Tests and commits must reference these IDs.
+> Source document for spec-driven development. Every requirement has a stable ID (`REQ-<AREA>-NNN`) and Given/When/Then acceptance criteria. Tests must reference these IDs; commits follow Conventional Commits and do not carry IDs.
 
 **Status:** draft v0.4 (reviewed; see 14.1 and section 15) · **Project license:** AGPL-3.0 · **Date:** 2026-10-20
 

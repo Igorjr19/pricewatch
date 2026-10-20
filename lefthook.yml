@@ -8,9 +8,9 @@ pre-commit:
 
 commit-msg:
   commands:
-    message:
+    conventional:
       run: |
-        grep -Eq 'REQ-[A-Z]+-[0-9]+|^(chore|docs|build|test|refactor|style):' {1} || {
-          echo "commit message must cite a REQ-* ID or start with chore|docs|build|test|refactor|style:" >&2
+        head -n1 {1} | grep -Eq '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: .+' || {
+          echo "commit subject must follow Conventional Commits: type(scope)?: description" >&2
           exit 1
         }

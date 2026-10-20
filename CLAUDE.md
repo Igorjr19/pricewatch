@@ -31,7 +31,7 @@ Nothing is scaffolded yet; confirm real scripts in `package.json` once it exists
 - `pnpm check`: typecheck + `biome check` + unit tests, failures only in the output. **Run before calling a task done.**
 - `pnpm test <pattern>`: one test or file. `pnpm req:check`: MUST requirements with no test citing the ID.
 - **Node 24 is mandatory** (REQ-DX-012), but the dev machine had Node 20.19.3 via mise: check `node -v` before scaffolding or running anything.
-- `.claude/settings.json` exists: `PostToolUse` formats edited `.ts` files and `Stop` runs `pnpm check` when `src/test/scripts` changed (both no-ops until scaffold). Pre-commit (lefthook) runs the checks; commits must cite a `REQ-*` or use a `chore|docs|build|test|refactor|style:` prefix.
+- `.claude/settings.json` exists: `PostToolUse` formats edited `.ts` files and `Stop` runs `pnpm check` when `src/test/scripts` changed (both no-ops until scaffold). Pre-commit (lefthook) runs the checks; commits must follow Conventional Commits (`feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert`, optional scope); do not put `REQ-*` IDs in commit messages.
 - Single CLI: `pricewatch serve [--no-cron]`, `pricewatch run`, `pricewatch migrate`. `run` exits 0 (cycle completed, even with listing failures), 2 (lock busy) or 1 (fatal error).
 - `pnpm test:live`: real store requests, manual, never in CI. All other tests must not touch the network (REQ-TST-001).
 - `pnpm fixtures:capture <adapter> <url>` (`--browser` from M2): saves the HTML and appends to the adapter's `manifest.json`.
@@ -58,7 +58,7 @@ Cross-file ideas:
 - **Money:** always integer BRL cents. API fields carry the `Cents` suffix. Use `parseBRL` to extract values from pages.
 - **Effective price** = the lower of `pixPriceCents` and `priceCents`, ignoring nulls. It is the basis of all rules. `pixPriceCents` is only set when the store explicitly shows a distinct Pix price.
 - **Time:** database always UTC ISO 8601; `PW_TZ` only formats messages. `Clock` is injected in scheduler, evaluators and cycle; tests do not use `Date.now()`.
-- **Traceability:** tests and commits reference `REQ-*` IDs. `describe` titles start with the ID (`describe('REQ-ALR-012 …')`). Minimum 90% coverage in `src/alerts/evaluators` and `src/monitor/scheduler.service.ts`.
+- **Traceability:** tests reference `REQ-*` IDs (commits do not; they use Conventional Commits). `describe` titles start with the ID (`describe('REQ-ALR-012 …')`). Minimum 90% coverage in `src/alerts/evaluators` and `src/monitor/scheduler.service.ts`.
 - **Adapters:** before implementing one, save a real page in `test/fixtures/<adapter>/` and record the chosen strategy and data source in §14 (REQ-ADP-010). At least 3 fixtures per adapter: in stock, out of stock, blocked/captcha, all listed in `manifest.json`. Fixtures must not contain cookies, tokens or personal data.
 - **Secrets:** never in logs or API responses (mask as `tele***`). API token compared in constant time.
 - **Configuration:** env only (`PW_*`), validated with zod at boot, listing each invalid variable and exiting with code 1. `.env.example` must document every variable in §6.1.
