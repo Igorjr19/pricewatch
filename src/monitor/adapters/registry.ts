@@ -23,6 +23,10 @@ export class AdapterRegistry {
     return this.byDomain.get(url.hostname.toLowerCase());
   }
 
+  list(): StoreAdapter[] {
+    return [...this.byId.values()];
+  }
+
   supportedDomains(): string[] {
     return [...this.byDomain.keys()].sort();
   }
