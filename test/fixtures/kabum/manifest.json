@@ -1,0 +1,11 @@
+{
+  "adapter": "kabum",
+  "fixtures": [
+    {"file": "in-stock-1p-magalu.html", "url": "https://www.kabum.com.br/produto/703054", "capturedAt": "2026-10-20", "strategy": "next-data", "expected": {"priceCents": 644333, "pixPriceCents": 579900, "inStock": true, "externalId": "703054", "seller": "Magalu"}},
+    {"file": "in-stock-marketplace.html", "url": "https://www.kabum.com.br/produto/1029920", "capturedAt": "2026-10-20", "strategy": "next-data", "expected": {"priceCents": 888778, "pixPriceCents": 799900, "inStock": true, "externalId": "1029920", "seller": "NOVA ERA COMERCIO DE CELULARES LTDA"}},
+    {"file": "in-stock-motorola.html", "url": "https://www.kabum.com.br/produto/1012762", "capturedAt": "2026-10-20", "strategy": "next-data", "expected": {"priceCents": 699900, "pixPriceCents": 629910, "inStock": true, "externalId": "1012762", "seller": "Magalu"}},
+    {"file": "out-of-stock.html", "url": "https://www.kabum.com.br/produto/365267", "capturedAt": "2026-10-20", "strategy": "next-data", "expected": {"priceCents": 269900, "pixPriceCents": 242910, "inStock": false, "externalId": "365267", "seller": "Magalu"}},
+    {"file": "not-found.html", "url": "https://www.kabum.com.br/produto/99999999", "capturedAt": "2026-10-20", "httpStatus": 404, "expectedError": "NotFoundError"}
+  ],
+  "todo": ["blocked/captcha (never observed; no block encountered)"]
+}
