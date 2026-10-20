@@ -3,7 +3,7 @@
 Handoff between sessions. Keep it short; update at the end of every slice (REQ-DX-018).
 
 ## Current step
-Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE` wiring in `serve`/`run` (REQ-DB-005). Steps 3 (cycle with fakes) and 4 (evaluators + AlertsService, §8.2 test) done. Step 5 (channel parser, notifiers, NotificationService) done. Steps 1-6 done, CLI wired (`serve`, `run`, `migrate` verified on the built binary). Next: step 7 adapters. See docs/specs/09-dx.md §15.2.
+Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE` wiring in `serve`/`run` (REQ-DB-005). Steps 3 (cycle with fakes) and 4 (evaluators + AlertsService, §8.2 test) done. Step 5 (channel parser, notifiers, NotificationService) done. Steps 1-6 done, CLI wired (`serve`, `run`, `migrate` verified on the built binary). Step 7: `kabum` adapter done; `mercadolivre` pending. See docs/specs/09-dx.md §15.2.
 
 ## Done
 - Spec v0.4 split by area, reviewed (decisions R1–R7 in docs/specs/08-scope-and-open-items.md).
@@ -16,15 +16,16 @@ Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE
 - Step 5: channel parser with boot validation (`src/notifications/channel-parser.ts`, wired into `loadConfig`, incl. REQ-NOT-002 checks on default/system channel lists), Telegram/SMTP(nodemailer)/webhook(HMAC) notifiers, 15 s timeout + retries (2 s, 6 s), `NotificationService` implementing `AlertDelivery` and `SystemNotifier` (one `notifications` row per channel, secret redaction, `sendTest` for the API), pt-BR message formatting. 179 tests green.
 - Step 6: `src/api/` (`ApiModule.register(deps)`, global bearer `AuthGuard` with constant-time compare and `PW_RUN_TOKEN` accepted only on `POST /run`, error envelope filter, class-validator DTOs with `details`, `CatalogService`, `ApiController`). All §10.1 routes incl. `?probe=true`, `/probe`, history buckets, cursor pagination, 409/422 rules. 206 tests green (`test/integration/api.spec.ts`, supertest).
 - CLI wiring: `src/app/runtime.ts` (composition root, `PW_AUTO_MIGRATE`), `HttpFetcher` (same-domain redirects, timeout), `Ticker` (no overlap, abortable), retention pruning at the end of each cycle, `run` exit codes 0/2/1, `serve` with SIGTERM (15 s grace). Build uses `tsconfig.build.json`. Verified by hand on `dist/`: migrate, run (0 and 2 with a held lock), serve health/auth/run, SIGTERM exit 0, bad env exit 1.
+- Step 7a: shared helpers (`parseBRL`, `extractEmbeddedJson`, `stripTracking`), `KabumAdapter` (`__NEXT_DATA__`, canonical `/produto/<id>`), registered in `stores/index.ts`; manifest-driven fixture tests incl. a synthetic, labelled blocked fixture. Live `POST /probe` against kabum.com.br returned the expected price/Pix/stock.
 - Fixtures: `test/fixtures/kabum/` (3 in stock, out of stock, not found), `test/fixtures/mercadolivre/` (blocked, out of stock, in stock).
 
 ## Next action
-1. Step 7: adapters `kabum` (needs a synthetic blocked fixture) and `mercadolivre` (decide `http` viability first); register them in `src/monitor/adapters/stores/index.ts`. Then step 8 Docker.
+1. Step 7b: `mercadolivre` (decide `http` viability first; see Blockers), register in `src/monitor/adapters/stores/index.ts`. Then step 8 Docker.
 2. Leftovers: `PW_FETCH_FIXTURES_DIR` (REQ-DX-009), pino logging, scripts `test:live`, `fixtures:capture`, `dev:seed`; `req` should print the acceptance block (REQ-DX-005); `LICENSE` file.
 3. Run `/simplify` and `/code-review` over steps 3-6.
 
 ## Fixture gaps (REQ-ADP-007)
-- Kabum: blocked/captcha (synthetic, labelled), plus a product without a Pix discount (`priceWithDiscount == price` → `pixPriceCents` null).
+- Kabum: complete (blocked is synthetic and labelled). No real product without a Pix discount; that case is covered by an inline unit test.
 - Mercado Livre: fixtures complete (blocked, out of stock, in stock). Still confirm `http` can ever get a product page; from this WSL IP it got `/gz/account-verification` (HTTP 200). M1 risk: if it stays blocked, ML needs the `api` (token) or `browser` strategy.
 
 ## Rules to carry forward
