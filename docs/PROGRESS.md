@@ -3,7 +3,7 @@
 Handoff between sessions. Keep it short; update at the end of every slice (REQ-DX-018).
 
 ## Current step
-Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE` wiring in `serve`/`run` (REQ-DB-005). Step 3 (cycle with fakes) next. See docs/specs/09-dx.md §15.2.
+Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE` wiring in `serve`/`run` (REQ-DB-005). Step 3 (cycle with fakes) done except the §8.2 test and CLI wiring. Step 4 (evaluators + AlertsService) next. See docs/specs/09-dx.md §15.2.
 
 ## Done
 - Spec v0.4 split by area, reviewed (decisions R1–R7 in docs/specs/08-scope-and-open-items.md).
@@ -11,12 +11,14 @@ Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE
 - Scaffold: CLI stub (`src/main.ts`, `src/cli/`), `package.json`, tsconfig, Vitest + `unplugin-swc`, Biome, lefthook, `pnpm req` / `req:check`, `.env.example`. DI smoke test passes (REQ-DX-003); `pnpm check` green.
 - A6 (Kabum) closed; A1 (Mercado Livre) fixtures done, `http` viability open. Details and fixtures in §14.
 - Step 2: zod config (`src/config/`), Drizzle schema + first migration (`src/db/`, `drizzle/`), `migrate` command, DB integration tests (REQ-DB-002/003/004).
+- Step 3: `Clock`, adapter contract + `AdapterRegistry`, `FakeAdapter`, `SchedulerService`, `RunLockService`, `CollectorService` (strategy loop, outcomes), `CycleService` (lock, due selection, concurrency, domain delay, timeout, abort, failing/recovered notices). Ports in `src/monitor/ports.ts` (`PageFetcher`, `AlertsPort`, `SystemNotifier`). 71 tests green.
 - Fixtures: `test/fixtures/kabum/` (3 in stock, out of stock, not found), `test/fixtures/mercadolivre/` (blocked, out of stock, in stock).
 
 ## Next action
+0. Step 3 leftovers: the §8.2 acceptance scenario needs the evaluators, so it lands in step 4 (it will drive `CycleService` with `FakeAdapter`). `run`/`serve` CLI wiring (Nest providers, `PW_AUTO_MIGRATE`, exit codes 0/2/1, SIGTERM 15 s) waits for a real `PageFetcher` + notifier; add coverage tooling (`@vitest/coverage-v8`) for the 90% rule on `scheduler.service.ts`.
 0. Step 2 leftovers: `migrate` command is untested end to end (no `tsx`/build run yet); REQ-DB-005 and REQ-DB-006 (retention) land with the cycle.
 1. Finish step 1: remaining scripts (`test:live`, `fixtures:capture`, `dev:seed`, `db:generate`), `req` should print the acceptance block (REQ-DX-005), README/AGPL license file.
-2. Step 3: `Clock`, `FakeAdapter`, `FakeNotifier`, `CycleService` with lock and scheduler, with the §8.2 integration test.
+2. Step 4: pure evaluators in `src/alerts/evaluators/` and `AlertsService` implementing `AlertsPort`; then the §8.2 integration test.
 
 ## Fixture gaps (REQ-ADP-007)
 - Kabum: blocked/captcha (synthetic, labelled), plus a product without a Pix discount (`priceWithDiscount == price` → `pixPriceCents` null).
@@ -24,6 +26,7 @@ Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE
 
 ## Rules to carry forward
 - ML price comes from the page state, never JSON-LD (see §14 A1).
+- Biome: run `./node_modules/.bin/biome check --write src test` to autofix; `pnpm exec biome ... --write` silently did nothing.
 - Evaluators must ignore `inStock=false` observations: out-of-stock pages keep stale prices (Kabum) or price 0 (ML).
 - `BlockedError` for ML keys on the final URL `/gz/account-verification` / body marker `negative_traffic`, not on the status code.
 
