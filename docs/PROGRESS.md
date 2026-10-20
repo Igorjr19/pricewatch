@@ -3,7 +3,7 @@
 Handoff between sessions. Keep it short; update at the end of every slice (REQ-DX-018).
 
 ## Current step
-Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE` wiring in `serve`/`run` (REQ-DB-005). Steps 3 (cycle with fakes) and 4 (evaluators + AlertsService, §8.2 test) done. Step 5 (channel parser, notifiers, NotificationService) done. Steps 1-6 done, CLI wired (`serve`, `run`, `migrate` verified on the built binary). Step 7: `kabum` adapter done; `mercadolivre` pending. See docs/specs/09-dx.md §15.2.
+Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE` wiring in `serve`/`run` (REQ-DB-005). Steps 3 (cycle with fakes) and 4 (evaluators + AlertsService, §8.2 test) done. Step 5 (channel parser, notifiers, NotificationService) done. Steps 1-6 done, CLI wired (`serve`, `run`, `migrate` verified on the built binary). Step 7: `kabum` and `mercadolivre` adapters done (ML blocked live from this IP). Next: step 8 Docker. See docs/specs/09-dx.md §15.2.
 
 ## Done
 - Spec v0.4 split by area, reviewed (decisions R1–R7 in docs/specs/08-scope-and-open-items.md).
@@ -17,10 +17,12 @@ Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE
 - Step 6: `src/api/` (`ApiModule.register(deps)`, global bearer `AuthGuard` with constant-time compare and `PW_RUN_TOKEN` accepted only on `POST /run`, error envelope filter, class-validator DTOs with `details`, `CatalogService`, `ApiController`). All §10.1 routes incl. `?probe=true`, `/probe`, history buckets, cursor pagination, 409/422 rules. 206 tests green (`test/integration/api.spec.ts`, supertest).
 - CLI wiring: `src/app/runtime.ts` (composition root, `PW_AUTO_MIGRATE`), `HttpFetcher` (same-domain redirects, timeout), `Ticker` (no overlap, abortable), retention pruning at the end of each cycle, `run` exit codes 0/2/1, `serve` with SIGTERM (15 s grace). Build uses `tsconfig.build.json`. Verified by hand on `dist/`: migrate, run (0 and 2 with a held lock), serve health/auth/run, SIGTERM exit 0, bad env exit 1.
 - Step 7a: shared helpers (`parseBRL`, `extractEmbeddedJson`, `stripTracking`), `KabumAdapter` (`__NEXT_DATA__`, canonical `/produto/<id>`), registered in `stores/index.ts`; manifest-driven fixture tests incl. a synthetic, labelled blocked fixture. Live `POST /probe` against kabum.com.br returned the expected price/Pix/stock.
+- Step 7b: `MercadoLivreAdapter` (page state `_n.ctx.r`, brace-aware parse; Pix from the price breakdown; blocked by final URL or `negative_traffic`; item id from bookmark, page id fallback), manifest-driven fixture tests. Live probe from this IP: `blocked`, detection works end to end.
 - Fixtures: `test/fixtures/kabum/` (3 in stock, out of stock, not found), `test/fixtures/mercadolivre/` (blocked, out of stock, in stock).
 
 ## Next action
-1. Step 7b: `mercadolivre` (decide `http` viability first; see Blockers), register in `src/monitor/adapters/stores/index.ts`. Then step 8 Docker.
+1. Step 8: Docker `slim` image (node:24-slim, uid 10001, /data volume), compose example with `stop_grace_period: 20s`.
+   ML decision: keep trying `http` from other networks, or add the `api` strategy (`PW_MELI_*`) / M2 browser. M1 is not proven end to end for ML until one works.
 2. Leftovers: `PW_FETCH_FIXTURES_DIR` (REQ-DX-009), pino logging, scripts `test:live`, `fixtures:capture`, `dev:seed`; `req` should print the acceptance block (REQ-DX-005); `LICENSE` file.
 3. Run `/simplify` and `/code-review` over steps 3-6.
 
@@ -36,4 +38,4 @@ Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE
 - `BlockedError` for ML keys on the final URL `/gz/account-verification` / body marker `negative_traffic`, not on the status code.
 
 ## Blockers
-- ML `http` is blocked from this WSL IP: if it stays blocked, create an ML app (`PW_MELI_CLIENT_ID/SECRET`) or defer ML to M2 `browser`. Decide before step 7.
+- ML `http` is blocked from this WSL IP (confirmed again via the built app). If it stays blocked, create an ML app (`PW_MELI_CLIENT_ID/SECRET`) and add an `api` strategy, or defer ML to M2 `browser`.

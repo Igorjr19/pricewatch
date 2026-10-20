@@ -2,7 +2,7 @@
 
 Self-hosted, single-user tool that monitors product prices in Brazilian online stores and notifies you (Telegram, SMTP or webhook) when a condition you defined is met.
 
-> **Status: pre-alpha (milestone M1 in progress).** The monitoring cycle, the alert engine and the notification channels (Telegram, SMTP, webhook) are built and tested against fakes. The REST API (`src/api`) is built and tested; the CLI is wired, KaBuM! is the only store adapter so far, and the Docker image is not there yet, so there is nothing to run end to end today. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the exact state.
+> **Status: pre-alpha (milestone M1 in progress).** The monitoring cycle, the alert engine and the notification channels (Telegram, SMTP, webhook) are built and tested against fakes. The REST API (`src/api`) is built and tested; the CLI is wired, KaBuM! and Mercado Livre adapters exist (Mercado Livre is blocked live), and the Docker image is not there yet, so there is nothing to run end to end today. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the exact state.
 
 ## How it works
 
@@ -25,7 +25,7 @@ Self-hosted, single-user tool that monitors product prices in Brazilian online s
 | Store | Milestone | Status |
 |---|---|---|
 | KaBuM! | M1 | adapter built (`http`, page state), tested on fixtures and one live probe |
-| Mercado Livre | M1 | investigated, fixtures captured; plain `http` hit an anti-bot challenge from a residential IP, so viability is still open |
+| Mercado Livre | M1 | adapter built and tested on fixtures; plain `http` is still blocked by an anti-bot challenge from the author's residential IP, so it may need the `api` strategy or the M2 browser |
 | Magalu, Amazon | M2 | needs a browser fetcher |
 | Samsung, Motorola | M3 | not investigated |
 

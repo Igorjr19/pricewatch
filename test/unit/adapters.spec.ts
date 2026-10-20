@@ -8,6 +8,10 @@ import {
 } from '../../src/monitor/adapters/helpers.js';
 import { KabumAdapter } from '../../src/monitor/adapters/stores/kabum.adapter.js';
 import {
+  extractNordicState,
+  MercadoLivreAdapter,
+} from '../../src/monitor/adapters/stores/mercadolivre.adapter.js';
+import {
   BlockedError,
   NotFoundError,
   ParseError,
@@ -185,5 +189,138 @@ describe('kabum adapter', () => {
       prices: { price: 10 },
     });
     expect(result.inStock).toBe(false);
+  });
+});
+
+describe('mercadolivre adapter', () => {
+  const adapter = new MercadoLivreAdapter();
+  const dir = resolve('test/fixtures/mercadolivre');
+  const manifest = JSON.parse(
+    readFileSync(resolve(dir, 'manifest.json'), 'utf8'),
+  ) as {
+    fixtures: {
+      file: string;
+      url: string;
+      httpStatus?: number;
+      expected?: Record<string, unknown>;
+      expectedError?: string;
+    }[];
+  };
+
+  describe.each(manifest.fixtures)('REQ-ADP-007 fixture $file', (fixture) => {
+    it('matches the manifest', async () => {
+      const html = readFileSync(resolve(dir, fixture.file), 'utf8');
+      const run = adapter.extract({
+        strategy: 'http',
+        url: new URL(fixture.url),
+        html,
+        httpStatus: fixture.httpStatus ?? 200,
+      });
+      if (fixture.expectedError) {
+        await expect(run).rejects.toBeInstanceOf(BlockedError);
+      } else {
+        await expect(run).resolves.toMatchObject(fixture.expected ?? {});
+      }
+    });
+  });
+
+  it('REQ-FET-005 detects the challenge by final URL even with a clean body', async () => {
+    await expect(
+      adapter.extract({
+        strategy: 'http',
+        url: new URL('https://www.mercadolivre.com.br/p/MLB1'),
+        html: '<html></html>',
+        httpStatus: 200,
+        finalUrl: new URL(
+          'https://www.mercadolivre.com.br/gz/account-verification?go=x',
+        ),
+      }),
+    ).rejects.toBeInstanceOf(BlockedError);
+  });
+
+  it('REQ-ADP-002 strips tracking but keeps the item identity', () => {
+    const url = adapter.normalizeUrl(
+      new URL(
+        'https://www.mercadolivre.com.br/p/MLB2000122846?pdp_filters=item_id:MLB7813355752&matt_tool=1&utm_source=a&position=3&tracking_id=z#reviews',
+      ),
+    );
+    expect(url.toString()).toBe(
+      'https://www.mercadolivre.com.br/p/MLB2000122846?pdp_filters=item_id%3AMLB7813355752',
+    );
+  });
+
+  it('REQ-ADP-004 a page without state is a ParseError, or NotFound on 404', async () => {
+    const base = {
+      strategy: 'http' as const,
+      url: new URL('https://www.mercadolivre.com.br/p/MLB1'),
+      html: '<html>nada</html>',
+    };
+    await expect(
+      adapter.extract({ ...base, httpStatus: 200 }),
+    ).rejects.toBeInstanceOf(ParseError);
+    await expect(
+      adapter.extract({ ...base, httpStatus: 404 }),
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  describe('REQ-ADP-006 Pix', () => {
+    const state = (price: unknown) =>
+      `<script>_n.ctx.r=${JSON.stringify({
+        appProps: {
+          pageProps: {
+            initialState: {
+              components: {
+                price,
+                no_stock_status: { state: 'HIDDEN' },
+                bookmark: { item_id: 'MLB1' },
+              },
+            },
+          },
+        },
+      })};</script>`;
+    const extract = (price: unknown) =>
+      adapter.extract({
+        strategy: 'http',
+        url: new URL('https://www.mercadolivre.com.br/p/MLB1'),
+        html: state(price),
+        httpStatus: 200,
+      });
+
+    it('a price with no Pix line has no Pix price', async () => {
+      const result = await extract({
+        state: 'VISIBLE',
+        price: { value: 100 },
+      });
+      expect(result).toMatchObject({ priceCents: 10_000, pixPriceCents: null });
+    });
+
+    it('a Pix line without an installment total adds the discount back to the cash price', async () => {
+      const result = await extract({
+        state: 'VISIBLE',
+        price: { value: 90 },
+        price_breakdown: {
+          bottomsheet: {
+            items: [
+              {
+                title: { label: { text: 'Desconto no Pix' } },
+                value: { label: { values: { price: { value: 10 } } } },
+              },
+            ],
+          },
+        },
+      });
+      expect(result).toMatchObject({
+        priceCents: 10_000,
+        pixPriceCents: 9_000,
+      });
+    });
+  });
+
+  it('extractNordicState survives braces inside strings and trailing statements', () => {
+    const html =
+      '<script>_n.ctx.r={"a":"}{\\"","b":{"c":1}};window.x={"z":2};</script>';
+    expect(extractNordicState(html)).toEqual({ a: '}{"', b: { c: 1 } });
+    expect(extractNordicState('nothing')).toBeUndefined();
+    expect(extractNordicState('_n.ctx.r={"a":')).toBeUndefined();
   });
 });
