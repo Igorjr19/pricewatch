@@ -19,11 +19,12 @@ Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE
 - Step 7a: shared helpers (`parseBRL`, `extractEmbeddedJson`, `stripTracking`), `KabumAdapter` (`__NEXT_DATA__`, canonical `/produto/<id>`), registered in `stores/index.ts`; manifest-driven fixture tests incl. a synthetic, labelled blocked fixture. Live `POST /probe` against kabum.com.br returned the expected price/Pix/stock.
 - Step 7b: `MercadoLivreAdapter` (page state `_n.ctx.r`, brace-aware parse; Pix from the price breakdown; blocked by final URL or `negative_traffic`; item id from bookmark, page id fallback), manifest-driven fixture tests. Live probe from this IP: `blocked`, detection works end to end.
 - Step 8: multi-stage `Dockerfile` (`slim` target, uid 10001, `/data`, healthcheck, `pricewatch` wrapper as entrypoint), `.dockerignore`, `docker-compose.yml` (`stop_grace_period: 20s`). Runtime stage verified in a container: non-root, health, `run` exit, graceful stop, sizes (spec 14, C1). The sandbox's container network intercepts TLS, so `docker build` of the `deps`/`build` stages failed on `SELF_SIGNED_CERT_IN_CHAIN`; run `docker build --target slim .` once on a normal network.
+- `PW_FETCH_FIXTURES_DIR` (REQ-DX-009): `FixturesFetcher`. Verified end to end on the built binary, offline: Kabum fixture listing + `target_price` rule + signed webhook channel → one alert on `POST /run`, none on the second run.
 - Fixtures: `test/fixtures/kabum/` (3 in stock, out of stock, not found), `test/fixtures/mercadolivre/` (blocked, out of stock, in stock).
 
 ## Next action
 Waiting on the user (blocked flows, to retry from another network): Mercado Livre `http` live read, full `docker build`. Meanwhile, not blocked:
-1. Leftovers: `PW_FETCH_FIXTURES_DIR` (REQ-DX-009, offline end-to-end run), pino logging, scripts `test:live`, `fixtures:capture`, `dev:seed`; `req` should print the acceptance block (REQ-DX-005); `LICENSE` file; `migrate` CLI test.
+1. Leftovers: pino logging, scripts `test:live`, `fixtures:capture`, `dev:seed`; `req` should print the acceptance block (REQ-DX-005); `migrate` CLI test.
 2. Run `/simplify` and `/code-review` over steps 3-8, then fix findings.
 3. After ML works: end-to-end run with real stores.
 

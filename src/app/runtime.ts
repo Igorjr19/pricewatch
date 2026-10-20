@@ -9,6 +9,7 @@ import { AdapterRegistry } from '../monitor/adapters/registry.js';
 import { builtinAdapters } from '../monitor/adapters/stores/index.js';
 import { CollectorService } from '../monitor/collector.service.js';
 import { CycleService } from '../monitor/cycle.service.js';
+import { FixturesFetcher } from '../monitor/fixtures.fetcher.js';
 import { HttpFetcher } from '../monitor/http.fetcher.js';
 import { RunLockService } from '../monitor/run-lock.service.js';
 import { SchedulerService } from '../monitor/scheduler.service.js';
@@ -43,14 +44,19 @@ export async function buildRuntime(config: Config): Promise<Runtime> {
 
     const clock = new SystemClock();
     const registry = new AdapterRegistry(builtinAdapters(config));
-    const collector = new CollectorService(
-      clock,
-      new HttpFetcher({
-        userAgent: config.userAgent,
-        timeoutMs: config.httpTimeoutMs,
-      }),
-      { browser: config.browser },
-    );
+    // REQ-DX-009: development only, no network.
+    const fetcher = config.fetchFixturesDir
+      ? new FixturesFetcher(config.fetchFixturesDir, (url) => {
+          const adapter = registry.resolve(url);
+          return (adapter ? adapter.normalizeUrl(url) : url).toString();
+        })
+      : new HttpFetcher({
+          userAgent: config.userAgent,
+          timeoutMs: config.httpTimeoutMs,
+        });
+    const collector = new CollectorService(clock, fetcher, {
+      browser: config.browser,
+    });
     const scheduler = new SchedulerService(clock, {
       scrapeIntervalMs: config.scrapeIntervalMs,
       scrapeJitterMs: config.scrapeJitterMs,

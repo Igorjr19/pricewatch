@@ -1,10 +1,13 @@
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { fetchAttempts, notifications } from '../../src/db/schema.js';
 import { FakeAdapter } from '../../src/monitor/adapters/fake.adapter.js';
+import { KabumAdapter } from '../../src/monitor/adapters/stores/kabum.adapter.js';
 import {
   FetchTimeoutError,
   HttpError,
 } from '../../src/monitor/adapters/types.js';
+import { FixturesFetcher } from '../../src/monitor/fixtures.fetcher.js';
 import { HttpFetcher } from '../../src/monitor/http.fetcher.js';
 import { Ticker } from '../../src/monitor/ticker.js';
 import { makeHarness } from '../support/harness.js';
@@ -195,5 +198,32 @@ describe('REQ-DB-006 retention', () => {
     } finally {
       h.handle.close();
     }
+  });
+});
+
+describe('REQ-DX-009 FixturesFetcher', () => {
+  const kabum = new KabumAdapter();
+  const fetcher = new FixturesFetcher(resolve('test/fixtures'), (url) =>
+    kabum.normalizeUrl(url).toString(),
+  );
+
+  it('answers from the manifests, matching on the normalized URL', async () => {
+    const page = await fetcher.fetch(
+      new URL('https://kabum.com.br/produto/703054/algum-slug?utm_source=x'),
+      kabum,
+    );
+    expect(page.status).toBe(200);
+    expect(page.html).toContain('__NEXT_DATA__');
+  });
+
+  it('keeps the recorded status and fails for unknown URLs without touching the network', async () => {
+    const missing = await fetcher.fetch(
+      new URL('https://www.kabum.com.br/produto/99999999'),
+      kabum,
+    );
+    expect(missing.status).toBe(404);
+    await expect(
+      fetcher.fetch(new URL('https://www.kabum.com.br/produto/2'), kabum),
+    ).rejects.toBeInstanceOf(HttpError);
   });
 });

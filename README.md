@@ -2,7 +2,7 @@
 
 Self-hosted, single-user tool that monitors product prices in Brazilian online stores and notifies you (Telegram, SMTP or webhook) when a condition you defined is met.
 
-> **Status: pre-alpha (milestone M1 in progress).** The monitoring cycle, the alert engine and the notification channels (Telegram, SMTP, webhook) are built and tested against fakes. The REST API (`src/api`) is built and tested; the CLI is wired, KaBuM! and Mercado Livre adapters exist (Mercado Livre is blocked live); a Docker image and compose file are included, so there is nothing to run end to end today. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the exact state.
+> **Status: pre-alpha (milestone M1 in progress).** The monitoring cycle, the alert engine and the notification channels (Telegram, SMTP, webhook) are built and tested against fakes. The REST API (`src/api`) is built and tested; the CLI is wired, KaBuM! and Mercado Livre adapters exist (Mercado Livre is blocked live); a Docker image and compose file are included. KaBuM! can be monitored end to end today; Mercado Livre cannot until its blocked `http` flow is resolved. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the exact state.
 
 ## How it works
 
@@ -80,4 +80,4 @@ The `slim` image runs as uid 10001 with state in `/data`. `docker run <image> ru
 
 ## License
 
-AGPL-3.0 (declared in `package.json`). The `LICENSE` file has not been added yet.
+AGPL-3.0, see [`LICENSE`](LICENSE).
