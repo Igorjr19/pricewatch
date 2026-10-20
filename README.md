@@ -2,7 +2,7 @@
 
 Self-hosted, single-user tool that monitors product prices in Brazilian online stores and notifies you (Telegram, SMTP or webhook) when a condition you defined is met.
 
-> **Status: pre-alpha (milestone M1 in progress).** The monitoring cycle, the alert engine and the notification channels (Telegram, SMTP, webhook) are built and tested against fakes. The REST API (`src/api`) is built and tested; the CLI is wired, KaBuM! and Mercado Livre adapters exist (Mercado Livre is blocked live), and the Docker image is not there yet, so there is nothing to run end to end today. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the exact state.
+> **Status: pre-alpha (milestone M1 in progress).** The monitoring cycle, the alert engine and the notification channels (Telegram, SMTP, webhook) are built and tested against fakes. The REST API (`src/api`) is built and tested; the CLI is wired, KaBuM! and Mercado Livre adapters exist (Mercado Livre is blocked live); a Docker image and compose file are included, so there is nothing to run end to end today. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the exact state.
 
 ## How it works
 
@@ -68,6 +68,15 @@ drizzle/       generated SQL migrations
 - The spec in [`docs/specs/`](docs/specs) is the source of truth; [`SPECS.md`](SPECS.md) is its index. Requirements have stable IDs (`REQ-ALR-012`); tests cite them in their `describe` titles.
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/); a hook enforces it.
 - Tests never touch the network. Store pages live as sanitized fixtures in `test/fixtures/<store>/`.
+
+## Docker
+
+```sh
+cp .env.example .env   # set PW_API_TOKEN and channels
+docker compose up --build
+```
+
+The `slim` image runs as uid 10001 with state in `/data`. `docker run <image> run` executes one cycle and exits (0 done, 2 lock busy, 1 error).
 
 ## License
 

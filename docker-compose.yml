@@ -1,0 +1,15 @@
+services:
+  pricewatch:
+    build:
+      context: .
+      target: slim
+    image: pricewatch:latest
+    command: ["serve"]
+    env_file: .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    # A cycle can take a few seconds to stop; plain `docker run` would SIGKILL after 10 s (REQ-RUN-006).
+    stop_grace_period: 20s
