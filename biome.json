@@ -3,6 +3,7 @@
     "includes": [
       "**",
       "!dist",
+      "!coverage",
       "!.claude",
       "!.mcp.json",
       "!test/fixtures",

@@ -28,21 +28,23 @@ describe('REQ-CFG-001 defaults and parsing', () => {
     expect(config.browser).toBe('off');
   });
 
-  it('collects PW_CHANNEL_<NAME> values under the lower-cased name', () => {
+  it('parses PW_CHANNEL_<NAME> into lower-cased named channels (REQ-NOT-001)', () => {
     const config = loadConfig({
       PW_API_TOKEN: 'x',
       PW_CHANNEL_PHONE: 'telegram://1:A@2',
-      PW_CHANNEL_N8N: 'webhook+https://h/p',
+      PW_CHANNEL_N8N: 'webhook+https://h.example/p?secret=s3cret',
     });
-    expect(config.channelUrls).toEqual({
-      phone: 'telegram://1:A@2',
-      n8n: 'webhook+https://h/p',
-    });
+    expect(config.channels.map((c) => [c.name, c.type])).toEqual([
+      ['phone', 'telegram'],
+      ['n8n', 'webhook'],
+    ]);
   });
 
   it('system channels default to the default channels', () => {
     const config = loadConfig({
       PW_API_TOKEN: 'x',
+      PW_CHANNEL_A: 'telegram://1:A@2',
+      PW_CHANNEL_B: 'telegram://1:A@3',
       PW_DEFAULT_CHANNELS: 'a, b',
     });
     expect(config.systemChannels).toEqual(['a', 'b']);
@@ -111,5 +113,64 @@ describe('REQ-CFG-002 invalid environment', () => {
       PW_DATABASE_URL: 'libsql://x',
     });
     expect(list.join('\n')).not.toContain('super-secret-token');
+  });
+});
+
+describe('REQ-NOT-001 / REQ-NOT-002 channels at boot', () => {
+  function problems(
+    env: NodeJS.ProcessEnv,
+    command?: 'serve' | 'run' | 'migrate',
+  ): string[] {
+    try {
+      loadConfig(env, command);
+    } catch (error) {
+      if (error instanceof ConfigError) return error.problems;
+      throw error;
+    }
+    return [];
+  }
+
+  it('an invalid channel is a configuration error, reported next to the other problems', () => {
+    const list = problems({
+      PW_API_TOKEN: 'x',
+      PW_PORT: 'abc',
+      PW_CHANNEL_BAD: 'nope://x',
+    });
+    expect(list).toHaveLength(2);
+    expect(list.join('\n')).toMatch(/PW_CHANNEL_BAD/);
+  });
+
+  it('PW_DEFAULT_CHANNELS and PW_SYSTEM_CHANNELS may only name configured channels', () => {
+    const list = problems({
+      PW_API_TOKEN: 'x',
+      PW_CHANNEL_PHONE: 'telegram://1:A@2',
+      PW_DEFAULT_CHANNELS: 'phone,ghost',
+      PW_SYSTEM_CHANNELS: 'other',
+    });
+    expect(list).toEqual([
+      'PW_DEFAULT_CHANNELS: unknown channel "ghost"',
+      'PW_SYSTEM_CHANNELS: unknown channel "other"',
+    ]);
+  });
+
+  it('does not double-report a channel that is listed but invalid', () => {
+    const list = problems({
+      PW_API_TOKEN: 'x',
+      PW_CHANNEL_BAD: 'nope://x',
+      PW_DEFAULT_CHANNELS: 'bad',
+    });
+    expect(list).toHaveLength(1);
+  });
+
+  it('migrate does not validate channels', () => {
+    expect(problems({ PW_CHANNEL_BAD: 'nope://x' }, 'migrate')).toEqual([]);
+  });
+
+  it('error messages never contain the channel secrets', () => {
+    const list = problems({
+      PW_API_TOKEN: 'x',
+      PW_CHANNEL_MAIL: 'smtp://u:hunter2@h?from=bad&to=bad',
+    });
+    expect(list.join('\n')).not.toContain('hunter2');
   });
 });

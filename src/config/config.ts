@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { parseChannels } from '../notifications/channel-parser.js';
+import type { ChannelConfig } from '../notifications/types.js';
 import { parseDuration } from './duration.js';
 
 const DEFAULT_USER_AGENT =
@@ -134,8 +136,8 @@ export interface Config {
   systemChannels?: string[];
   meliClientId?: string;
   meliClientSecret?: string;
-  /** Raw `PW_CHANNEL_<NAME>` values by lower-cased name; parsed and validated by the notifier layer. */
-  channelUrls: Record<string, string>;
+  /** Parsed `PW_CHANNEL_<NAME>` channels (REQ-NOT-001). Contain secrets: never log them whole. */
+  channels: ChannelConfig[];
 }
 
 export class ConfigError extends Error {
@@ -163,14 +165,41 @@ export function loadConfig(
   if (command === 'serve' && !env.PW_API_TOKEN) {
     problems.push('PW_API_TOKEN: required for serve');
   }
+  // Channels are validated for the commands that send notifications; `migrate` does not need them.
+  let channels: ChannelConfig[] = [];
+  if (command !== 'migrate') {
+    const urls: Record<string, string> = {};
+    for (const [key, value] of Object.entries(env)) {
+      const match = /^PW_CHANNEL_([A-Za-z0-9_]+)$/.exec(key);
+      if (match && value) urls[(match[1] as string).toLowerCase()] = value;
+    }
+    const result = parseChannels(urls);
+    channels = result.channels;
+    problems.push(...result.problems);
+
+    // REQ-NOT-002: channel lists may only reference configured channels.
+    const known = new Set(channels.map((channel) => channel.name));
+    const invalidNames = new Set(
+      result.problems.map((problem) =>
+        problem.slice('PW_CHANNEL_'.length).split(':')[0]?.toLowerCase(),
+      ),
+    );
+    for (const variable of [
+      'PW_DEFAULT_CHANNELS',
+      'PW_SYSTEM_CHANNELS',
+    ] as const) {
+      for (const name of parsed.success ? (parsed.data[variable] ?? []) : []) {
+        const lower = name.toLowerCase();
+        if (!known.has(lower) && !invalidNames.has(lower)) {
+          problems.push(`${variable}: unknown channel "${name}"`);
+        }
+      }
+    }
+  }
+
   if (!parsed.success || problems.length > 0) throw new ConfigError(problems);
 
   const e = parsed.data;
-  const channelUrls: Record<string, string> = {};
-  for (const [key, value] of Object.entries(env)) {
-    const match = /^PW_CHANNEL_([A-Z0-9_]+)$/.exec(key);
-    if (match && value) channelUrls[match[1].toLowerCase()] = value;
-  }
 
   return {
     port: e.PW_PORT,
@@ -201,6 +230,6 @@ export function loadConfig(
     systemChannels: e.PW_SYSTEM_CHANNELS ?? e.PW_DEFAULT_CHANNELS,
     meliClientId: e.PW_MELI_CLIENT_ID,
     meliClientSecret: e.PW_MELI_CLIENT_SECRET,
-    channelUrls,
+    channels,
   };
 }
