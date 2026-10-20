@@ -1,10 +1,11 @@
-import { and, asc, eq, inArray, isNull, lte } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, lt, lte } from 'drizzle-orm';
 import type { Clock } from '../common/clock.js';
 import { newId } from '../common/ids.js';
 import type { Database } from '../db/database.js';
 import {
   fetchAttempts,
   listings,
+  notifications,
   observations,
   products,
   runs,
@@ -22,6 +23,8 @@ export interface CycleConfig {
   concurrency: number;
   domainDelayMs: number;
   failingThreshold: number;
+  /** REQ-DB-006: age limit for `fetch_attempts` and `notifications`; omitted = keep everything. */
+  retentionMs?: number;
 }
 
 export type RunTrigger = 'ticker' | 'cli' | 'api';
@@ -89,10 +92,9 @@ export class CycleService {
         startedAt: startedAt.toISOString(),
         status: 'running',
       });
-      return {
-        lockBusy: false,
-        summary: await this.execute(runId, trigger, startedAt, signal),
-      };
+      const summary = await this.execute(runId, trigger, startedAt, signal);
+      await this.prune();
+      return { lockBusy: false, summary };
     } catch (error) {
       await this.deps.db
         .update(runs)
@@ -177,6 +179,16 @@ export class CycleService {
       failures: counts.failures,
       notificationsSent,
     };
+  }
+
+  /** REQ-DB-006: observations are never pruned (they back `new_low`). */
+  private async prune(): Promise<void> {
+    const { db, clock, config } = this.deps;
+    if (config.retentionMs === undefined) return;
+    const cutoff = new Date(clock.now().getTime() - config.retentionMs);
+    const before = cutoff.toISOString();
+    await db.delete(fetchAttempts).where(lt(fetchAttempts.startedAt, before));
+    await db.delete(notifications).where(lt(notifications.createdAt, before));
   }
 
   /** REQ-CYC-002: active/failing listings of non-archived products, oldest due first. */

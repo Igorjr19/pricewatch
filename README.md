@@ -2,7 +2,7 @@
 
 Self-hosted, single-user tool that monitors product prices in Brazilian online stores and notifies you (Telegram, SMTP or webhook) when a condition you defined is met.
 
-> **Status: pre-alpha (milestone M1 in progress).** The monitoring cycle, the alert engine and the notification channels (Telegram, SMTP, webhook) are built and tested against fakes. The REST API (`src/api`) is built and tested; the real store adapters, the `serve`/`run` wiring and the Docker image are not there yet, so there is nothing to run end to end today. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the exact state.
+> **Status: pre-alpha (milestone M1 in progress).** The monitoring cycle, the alert engine and the notification channels (Telegram, SMTP, webhook) are built and tested against fakes. The REST API (`src/api`) is built and tested; the CLI is wired, but the real store adapters and the Docker image are not there yet, so no store can be monitored today, so there is nothing to run end to end today. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the exact state.
 
 ## How it works
 
@@ -45,7 +45,7 @@ pnpm db:generate       # generate a Drizzle migration after editing src/db/schem
 
 Configuration is environment-only (`PW_*`, validated with zod at boot). Copy [`.env.example`](.env.example), which documents every variable.
 
-The CLI has three commands: `pricewatch serve [--no-cron]`, `pricewatch run` and `pricewatch migrate`. Only `migrate` works today; `serve` and `run` are still stubs.
+The CLI has three commands: `pricewatch serve [--no-cron]`, `pricewatch run` and `pricewatch migrate`. `serve`, `run` and `migrate` work; with no store adapters registered yet, a cycle has nothing to read.
 
 ### Project layout
 

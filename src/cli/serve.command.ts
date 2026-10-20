@@ -1,4 +1,11 @@
+import { NestFactory } from '@nestjs/core';
 import { Command, CommandRunner, Option } from 'nest-commander';
+import { ApiModule } from '../api/api.module.js';
+import { buildRuntime } from '../app/runtime.js';
+import { Ticker } from '../monitor/ticker.js';
+import { loadConfigOrExit } from './config.js';
+
+const SHUTDOWN_GRACE_MS = 15_000;
 
 @Command({
   name: 'serve',
@@ -10,7 +17,34 @@ export class ServeCommand extends CommandRunner {
     return true;
   }
 
-  async run(): Promise<void> {
-    throw new Error('serve is not implemented yet (build step 6)');
+  async run(_params: string[], options?: { noCron?: boolean }): Promise<void> {
+    const config = loadConfigOrExit('serve');
+    const runtime = await buildRuntime(config);
+    const app = await NestFactory.create(ApiModule.register(runtime.apiDeps), {
+      logger: ['error', 'warn', 'log'],
+    });
+    await app.listen(config.port, '0.0.0.0');
+
+    const ticker = options?.noCron
+      ? null
+      : new Ticker(runtime.cycle, config.tickMs, (error) =>
+          console.error(
+            'cycle failed:',
+            error instanceof Error ? error.message : error,
+          ),
+        );
+    ticker?.start();
+
+    // REQ-RUN-006: stop starting listings, wait up to 15 s for the in-flight ones.
+    const shutdown = async () => {
+      const force = setTimeout(() => process.exit(1), SHUTDOWN_GRACE_MS);
+      force.unref();
+      await ticker?.stop();
+      await app.close();
+      runtime.close();
+      process.exit(0);
+    };
+    process.once('SIGTERM', () => void shutdown());
+    process.once('SIGINT', () => void shutdown());
   }
 }
