@@ -19,7 +19,9 @@ export class ServeCommand extends CommandRunner {
 
   async run(_params: string[], options?: { noCron?: boolean }): Promise<void> {
     const config = loadConfigOrExit('serve');
+    const shutdownController = new AbortController();
     const runtime = await buildRuntime(config);
+    runtime.apiDeps.shutdownSignal = shutdownController.signal;
     const app = await NestFactory.create(ApiModule.register(runtime.apiDeps), {
       logger: ['error', 'warn', 'log'],
     });
@@ -34,11 +36,14 @@ export class ServeCommand extends CommandRunner {
           ),
         );
     ticker?.start();
+    // Pick up listings that came due while the process was down; the run lock prevents overlap.
+    if (ticker) void ticker.tick();
 
     // REQ-RUN-006: stop starting listings, wait up to 15 s for the in-flight ones.
     const shutdown = async () => {
       const force = setTimeout(() => process.exit(1), SHUTDOWN_GRACE_MS);
       force.unref();
+      shutdownController.abort();
       await ticker?.stop();
       await app.close();
       runtime.close();

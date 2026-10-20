@@ -39,8 +39,8 @@ export class AuthGuard implements CanActivate {
 
     const header: string | undefined = context.switchToHttp().getRequest()
       .headers.authorization;
-    const match = /^Bearer (.+)$/.exec(header ?? '');
-    const presented = match?.[1];
+    const match = /^Bearer\s+(.+)$/i.exec(header ?? '');
+    const presented = match?.[1]?.trim();
     if (presented) {
       const accepted = [this.deps.apiToken];
       if (this.reflector.getAllAndOverride<boolean>(RUN_ROUTE, targets)) {

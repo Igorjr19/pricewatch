@@ -115,6 +115,14 @@ describe('REQ-API-001 authentication', () => {
     expect(scheme.status).toBe(401);
   });
 
+  it('accepts a case-insensitive scheme and ignores surrounding whitespace', async () => {
+    const { http } = await boot();
+    const res = await http
+      .get('/api/v1/products')
+      .set('Authorization', `bearer  ${TOKEN} `);
+    expect(res.status).toBe(200);
+  });
+
   it('GET /health needs no token', async () => {
     const { http } = await boot();
     const res = await http.get('/api/v1/health');
@@ -256,6 +264,18 @@ describe('products, listings and rules', () => {
       .set(auth)
       .send({ status: 'failing' });
     expect(bad.status).toBe(400);
+  });
+
+  it('changing the interval reschedules the listing now', async () => {
+    const { h, http, auth } = await boot();
+    const listingId = await h.addListing(URL_A, {
+      nextCheckAt: '2030-01-01T00:00:00.000Z',
+    });
+    const res = await http
+      .patch(`/api/v1/listings/${listingId}`)
+      .set(auth)
+      .send({ checkIntervalMinutes: 5 });
+    expect(res.body.nextCheckAt).toBe(h.clock.now().toISOString());
   });
 
   it('POST /listings/:id/check forces next_check_at = now', async () => {

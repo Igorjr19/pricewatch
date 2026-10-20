@@ -105,7 +105,7 @@ export class MercadoLivreAdapter implements StoreAdapter {
     const noStock = at(components, 'no_stock_status', 'state') === 'VISIBLE';
     const visible = priceBlock?.state === 'VISIBLE';
     const current = at(priceBlock, 'price', 'value');
-    if (!priceBlock || (!visible && !noStock)) {
+    if (!noStock && !visible) {
       throw new ParseError('neither price nor stock state found');
     }
 
@@ -127,7 +127,7 @@ export class MercadoLivreAdapter implements StoreAdapter {
     };
 
     // Out of stock: the page keeps no usable price (REQ-ADP-005).
-    if (noStock || !visible || typeof current !== 'number' || current <= 0) {
+    if (noStock || typeof current !== 'number' || current <= 0) {
       return {
         ...base,
         priceCents: null,

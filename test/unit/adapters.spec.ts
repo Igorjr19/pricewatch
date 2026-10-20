@@ -263,6 +263,30 @@ describe('mercadolivre adapter', () => {
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
+  it('REQ-ADP-005 an out-of-stock page without a price component is still an observation', async () => {
+    const html = `<script>_n.ctx.r=${JSON.stringify({
+      appProps: {
+        pageProps: {
+          initialState: {
+            id: 'MLBU9',
+            components: { no_stock_status: { state: 'VISIBLE' } },
+          },
+        },
+      },
+    })};</script>`;
+    const result = await adapter.extract({
+      strategy: 'http',
+      url: new URL('https://www.mercadolivre.com.br/p/MLB1'),
+      html,
+      httpStatus: 200,
+    });
+    expect(result).toMatchObject({
+      inStock: false,
+      priceCents: null,
+      externalId: 'MLBU9',
+    });
+  });
+
   describe('REQ-ADP-006 Pix', () => {
     const state = (price: unknown) =>
       `<script>_n.ctx.r=${JSON.stringify({

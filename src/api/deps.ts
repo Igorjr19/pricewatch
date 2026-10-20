@@ -22,4 +22,6 @@ export interface ApiDeps {
   runToken?: string;
   version: string;
   browserAvailable: boolean;
+  /** Aborted on shutdown so a cycle started through `POST /run` stops too (REQ-RUN-006). */
+  shutdownSignal?: AbortSignal;
 }

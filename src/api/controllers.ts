@@ -185,7 +185,7 @@ export class ApiController {
   @Post('run')
   @HttpCode(200)
   async run() {
-    const result = await this.deps.cycle.run('api');
+    const result = await this.deps.cycle.run('api', this.deps.shutdownSignal);
     if (result.lockBusy) {
       throw new ApiError(409, 'run_in_progress', 'Another cycle is running');
     }

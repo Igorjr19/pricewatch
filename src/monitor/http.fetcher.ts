@@ -43,6 +43,7 @@ export class HttpFetcher implements PageFetcher {
             response.status,
           );
         }
+        await response.body?.cancel();
         current = next;
         continue;
       }

@@ -388,6 +388,10 @@ export class CatalogService {
     const patch: Partial<typeof listings.$inferInsert> = { updatedAt: now };
     if (body.checkIntervalMinutes !== undefined) {
       patch.checkIntervalMinutes = body.checkIntervalMinutes;
+      // The new interval applies now, not after the old (possibly distant) due time.
+      if (listing.status !== 'paused' && body.status !== 'paused') {
+        patch.nextCheckAt = now;
+      }
     }
     if (body.status !== undefined) {
       patch.status = body.status;

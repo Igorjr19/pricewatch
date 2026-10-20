@@ -148,6 +148,20 @@ describe('REQ-RUN-005 Ticker', () => {
   });
 });
 
+describe('REQ-DB-006 retention failure', () => {
+  it('a failing prune does not turn a completed cycle into a failed one', async () => {
+    const h = await makeHarness({ config: { retentionMs: 1000 } });
+    try {
+      await h.handle.client.execute('drop table fetch_attempts');
+      const result = await h.cycle.run('cli');
+      expect(result.lockBusy).toBe(false);
+      if (!result.lockBusy) expect(result.summary.status).toBe('completed');
+    } finally {
+      h.handle.close();
+    }
+  });
+});
+
 describe('REQ-DB-006 retention', () => {
   it('prunes old attempts and notifications at the end of a cycle, never observations', async () => {
     const h = await makeHarness({ config: { retentionMs: 90 * 86_400_000 } });

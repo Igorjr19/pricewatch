@@ -46,8 +46,8 @@
       "capturedAt": "2026-10-20",
       "strategy": "next-data",
       "expected": {
-        "priceCents": 269900,
-        "pixPriceCents": 242910,
+        "priceCents": null,
+        "pixPriceCents": null,
         "inStock": false,
         "externalId": "365267",
         "seller": "Magalu"

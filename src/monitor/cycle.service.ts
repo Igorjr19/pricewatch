@@ -187,8 +187,12 @@ export class CycleService {
     if (config.retentionMs === undefined) return;
     const cutoff = new Date(clock.now().getTime() - config.retentionMs);
     const before = cutoff.toISOString();
-    await db.delete(fetchAttempts).where(lt(fetchAttempts.startedAt, before));
-    await db.delete(notifications).where(lt(notifications.createdAt, before));
+    try {
+      await db.delete(fetchAttempts).where(lt(fetchAttempts.startedAt, before));
+      await db.delete(notifications).where(lt(notifications.createdAt, before));
+    } catch {
+      // Housekeeping is best effort: a completed cycle must not turn into a failed one.
+    }
   }
 
   /** REQ-CYC-002: active/failing listings of non-archived products, oldest due first. */

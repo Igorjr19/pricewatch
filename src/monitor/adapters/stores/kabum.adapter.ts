@@ -64,10 +64,13 @@ export class KabumAdapter implements StoreAdapter {
       throw new ParseError('no product in __NEXT_DATA__');
     }
 
-    const priceCents = cents(product.prices?.price);
-    const discounted = cents(product.prices?.priceWithDiscount);
     const inStock =
       product.available === true && product.flags?.isAvailable === true;
+    // Out-of-stock pages keep stale prices; they are not observations (REQ-ADP-005).
+    const priceCents = inStock ? cents(product.prices?.price) : null;
+    const discounted = inStock
+      ? cents(product.prices?.priceWithDiscount)
+      : null;
     if (priceCents === null && !inStock && product.available === undefined) {
       throw new ParseError('product has neither price nor stock');
     }

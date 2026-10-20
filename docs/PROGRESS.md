@@ -25,7 +25,7 @@ Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE
 ## Next action
 Waiting on the user (blocked flows, to retry from another network): Mercado Livre `http` live read, full `docker build`. Meanwhile, not blocked:
 1. Leftovers: pino logging, scripts `test:live`, `fixtures:capture`, `dev:seed`; `req` should print the acceptance block (REQ-DX-005); `migrate` CLI test.
-2. Run `/simplify` and `/code-review` over steps 3-8, then fix findings.
+2. `/code-review` over steps 6-8 done and fixed (prune best-effort, shutdown signal for `POST /run`, redirect body cancel, Kabum out-of-stock prices null, ML out-of-stock without a price block, interval PATCH reschedules, case-insensitive Bearer, immediate first tick). Known and left: `?probe=true` duplicates the cycle's persistence and emits no `price.observed`, so rules see its first observation only on the next check. `/simplify` not run yet.
 3. After ML works: end-to-end run with real stores.
 
 ## Fixture gaps (REQ-ADP-007)
