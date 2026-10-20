@@ -1,0 +1,14 @@
+{
+  "files": {
+    "includes": ["**", "!dist", "!.claude", "!.mcp.json", "!test/fixtures"]
+  },
+  "formatter": { "indentStyle": "space", "indentWidth": 2 },
+  "javascript": { "formatter": { "quoteStyle": "single" } },
+  "linter": {
+    "rules": {
+      "recommended": true,
+      "style": { "useImportType": "off" },
+      "nursery": { "noFloatingPromises": "error" }
+    }
+  }
+}

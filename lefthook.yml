@@ -1,0 +1,16 @@
+pre-commit:
+  commands:
+    biome:
+      glob: "*.{ts,json}"
+      run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
+    typecheck:
+      run: pnpm exec tsc --noEmit
+
+commit-msg:
+  commands:
+    message:
+      run: |
+        grep -Eq 'REQ-[A-Z]+-[0-9]+|^(chore|docs|build|test|refactor|style):' {1} || {
+          echo "commit message must cite a REQ-* ID or start with chore|docs|build|test|refactor|style:" >&2
+          exit 1
+        }
