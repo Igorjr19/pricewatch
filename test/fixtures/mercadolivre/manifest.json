@@ -1,0 +1,30 @@
+{
+  "adapter": "mercadolivre",
+  "fixtures": [
+    {
+      "file": "blocked-account-verification.html",
+      "kind": "blocked",
+      "capturedAt": "2026-10-20",
+      "sourceUrl": "https://www.mercadolivre.com.br/p/MLB65503988?pdp_filters=item_id:MLB6288481376",
+      "httpStatus": 200,
+      "note": "HTTP 200 after redirect to /gz/account-verification?go=...; all 3 requested URLs behaved identically"
+    },
+    {
+      "file": "out-of-stock.html",
+      "kind": "out_of_stock",
+      "capturedAt": "2026-10-20",
+      "sourceUrl": "https://www.mercadolivre.com.br/iphone-se-32gb-1-geracao-lacrado-cinza-espacial-raridade/up/MLBU1197727369",
+      "httpStatus": 200,
+      "note": "Browser Save-As (not http fetch), sanitized: only JSON-LD + _n.ctx.r state kept. JSON-LD offers.availability=OutOfStock price=0; state pdp_type=NO_STOCK, no_stock_status VISIBLE"
+    },
+    {
+      "file": "in-stock.html",
+      "kind": "in_stock",
+      "capturedAt": "2026-10-20",
+      "sourceUrl": "https://www.mercadolivre.com.br/smartphone-motorola-edge-50-pro-5g-256gb-12gb-ram-12gb-ram-boost-50mp-ultra-pixel-ai-camera-ip68-nfc-preto-aceitavel-recondicionado/p/MLB2000122846",
+      "httpStatus": 200,
+      "note": "Browser View Source (not http fetch), sanitized: JSON-LD (reviews dropped) + _n.ctx.r state; csrf/d2id/UUIDs redacted. Catalog page /p/MLB2000122846, item wid MLB7813355752. state price.price.value=1287.08 (Pix-discounted, 'no Pix'); cash=1399 (10x139.9, subtitles); JSON-LD hasVariant offers.price=1444.33 matches neither; pdp_type GREEN_WITH_OFFER; no_stock_status HIDDEN; available_quantity 6"
+    }
+  ],
+  "missing": []
+}
