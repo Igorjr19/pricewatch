@@ -1,6 +1,7 @@
 import { resolve } from 'node:path';
 import { eq } from 'drizzle-orm';
 import { AlertsService } from '../../src/alerts/alerts.service.js';
+import type { AlertDelivery } from '../../src/alerts/events.js';
 import {
   type DatabaseHandle,
   openDatabase,
@@ -14,7 +15,11 @@ import {
   type CycleConfig,
   CycleService,
 } from '../../src/monitor/cycle.service.js';
-import type { AlertsPort, PageFetcher } from '../../src/monitor/ports.js';
+import type {
+  AlertsPort,
+  PageFetcher,
+  SystemNotifier,
+} from '../../src/monitor/ports.js';
 import { RunLockService } from '../../src/monitor/run-lock.service.js';
 import { SchedulerService } from '../../src/monitor/scheduler.service.js';
 import {
@@ -69,6 +74,11 @@ export async function makeHarness(
     browser?: string;
     /** Wire the real AlertsService with a FakeDelivery instead of the recording stub. */
     realAlerts?: boolean;
+    /** Replace the FakeDelivery / FakeNotifier with real implementations (they get the harness db and clock). */
+    buildDelivery?: (ctx: {
+      db: DatabaseHandle['db'];
+      clock: FakeClock;
+    }) => AlertDelivery & SystemNotifier;
   } = {},
 ): Promise<Harness> {
   const handle = await openDatabase({ url: 'file::memory:' });
@@ -89,10 +99,11 @@ export async function makeHarness(
     } satisfies PageFetcher);
 
   const delivery = new FakeDelivery();
+  const real = options.buildDelivery?.({ db: handle.db, clock });
   const realAlerts = new AlertsService({
     db: handle.db,
     registry,
-    delivery,
+    delivery: real ?? delivery,
     config: { alertCooldownMs: 12 * HOUR },
   });
 
@@ -113,8 +124,9 @@ export async function makeHarness(
       },
       () => 0.5,
     ),
-    alerts: options.alerts ?? (options.realAlerts ? realAlerts : alerts),
-    notifier,
+    alerts:
+      options.alerts ?? (options.realAlerts || real ? realAlerts : alerts),
+    notifier: real ?? notifier,
     config: { ...defaultCycleConfig, ...options.config },
   });
 

@@ -3,7 +3,7 @@
 Handoff between sessions. Keep it short; update at the end of every slice (REQ-DX-018).
 
 ## Current step
-Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE` wiring in `serve`/`run` (REQ-DB-005). Steps 3 (cycle with fakes) and 4 (evaluators + AlertsService, §8.2 test) done. Step 5 (notifiers + channel parser) next; CLI wiring waits for it. See docs/specs/09-dx.md §15.2.
+Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE` wiring in `serve`/`run` (REQ-DB-005). Steps 3 (cycle with fakes) and 4 (evaluators + AlertsService, §8.2 test) done. Step 5 (channel parser, notifiers, NotificationService) done. Step 6 (API and auth) next; CLI wiring (`run`/`serve`) follows once the API module exists. See docs/specs/09-dx.md §15.2.
 
 ## Done
 - Spec v0.4 split by area, reviewed (decisions R1–R7 in docs/specs/08-scope-and-open-items.md).
@@ -13,13 +13,14 @@ Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE
 - Step 2: zod config (`src/config/`), Drizzle schema + first migration (`src/db/`, `drizzle/`), `migrate` command, DB integration tests (REQ-DB-002/003/004).
 - Step 3: `Clock`, adapter contract + `AdapterRegistry`, `FakeAdapter`, `SchedulerService`, `RunLockService`, `CollectorService` (strategy loop, outcomes), `CycleService` (lock, due selection, concurrency, domain delay, timeout, abort, failing/recovered notices). Ports in `src/monitor/ports.ts` (`PageFetcher`, `AlertsPort`, `SystemNotifier`). 71 tests green.
 - Step 4: pure evaluators (`src/alerts/evaluators/`, state per unit: product, or listing for `back_in_stock`), `AlertsService` implementing `AlertsPort` (rule selection ALR-006, history queries, dedup/cooldown, ALR-015 pending retry), `AlertDelivery` port (`src/alerts/events.ts`), params validation (`params.ts`), BRL formatting. §8.2 scenario passes both on the evaluator and end to end through `CycleService`. `pnpm test:coverage` enforces ≥90% on evaluators and scheduler (currently 99% / 98%).
+- Step 5: channel parser with boot validation (`src/notifications/channel-parser.ts`, wired into `loadConfig`, incl. REQ-NOT-002 checks on default/system channel lists), Telegram/SMTP(nodemailer)/webhook(HMAC) notifiers, 15 s timeout + retries (2 s, 6 s), `NotificationService` implementing `AlertDelivery` and `SystemNotifier` (one `notifications` row per channel, secret redaction, `sendTest` for the API), pt-BR message formatting. 179 tests green.
 - Fixtures: `test/fixtures/kabum/` (3 in stock, out of stock, not found), `test/fixtures/mercadolivre/` (blocked, out of stock, in stock).
 
 ## Next action
 0. Leftovers: `run`/`serve` CLI wiring (Nest providers, `PW_AUTO_MIGRATE`, exit codes 0/2/1, SIGTERM 15 s) waits for a real `PageFetcher` + notifier. `migrate` command is untested end to end. REQ-DB-006 (retention pruning) lands with the cycle wiring.
 0. Step 2 leftovers: `migrate` command is untested end to end (no `tsx`/build run yet); REQ-DB-005 and REQ-DB-006 (retention) land with the cycle.
 1. Finish step 1: remaining scripts (`test:live`, `fixtures:capture`, `dev:seed`, `db:generate`), `req` should print the acceptance block (REQ-DX-005), README/AGPL license file.
-2. Step 5: channel URL parser (telegram/smtp/webhook) validated at boot, `Notifier` implementations, `AlertDelivery` + `SystemNotifier` backed by them (writes `notifications` rows, masks secrets), system notices.
+2. Step 6: API and auth (`docs/specs/05-api.md`): products, listings, rules, runs, notifications, `POST /run` (409 on busy lock), channel test endpoint using `NotificationService.sendTest`, REQ-NOT-002 `422` for unknown channels in rules, bearer token compared in constant time.
 
 ## Fixture gaps (REQ-ADP-007)
 - Kabum: blocked/captcha (synthetic, labelled), plus a product without a Pix discount (`priceWithDiscount == price` → `pixPriceCents` null).
