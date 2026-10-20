@@ -1,11 +1,12 @@
 import { resolve } from 'node:path';
 import { eq } from 'drizzle-orm';
+import { AlertsService } from '../../src/alerts/alerts.service.js';
 import {
   type DatabaseHandle,
   openDatabase,
   runMigrations,
 } from '../../src/db/database.js';
-import { listings, products } from '../../src/db/schema.js';
+import { listings, products, rules } from '../../src/db/schema.js';
 import { FakeAdapter } from '../../src/monitor/adapters/fake.adapter.js';
 import { AdapterRegistry } from '../../src/monitor/adapters/registry.js';
 import { CollectorService } from '../../src/monitor/collector.service.js';
@@ -16,7 +17,12 @@ import {
 import type { AlertsPort, PageFetcher } from '../../src/monitor/ports.js';
 import { RunLockService } from '../../src/monitor/run-lock.service.js';
 import { SchedulerService } from '../../src/monitor/scheduler.service.js';
-import { FakeClock, FakeNotifier, RecordingAlerts } from './fakes.js';
+import {
+  FakeClock,
+  FakeDelivery,
+  FakeNotifier,
+  RecordingAlerts,
+} from './fakes.js';
 
 export const HOUR = 3_600_000;
 export const MIN = 60_000;
@@ -38,6 +44,15 @@ export interface Harness {
   alerts: AlertsPort & RecordingAlerts;
   locks: RunLockService;
   cycle: CycleService;
+  delivery: FakeDelivery;
+  addRule(
+    productId: string,
+    type: 'target_price' | 'new_low' | 'back_in_stock',
+    params: unknown,
+    overrides?: Partial<typeof rules.$inferInsert>,
+  ): Promise<string>;
+  makeDue(listingId: string): Promise<void>;
+  ruleState(ruleId: string): Promise<unknown>;
   addListing(
     url: string,
     overrides?: Partial<typeof listings.$inferInsert>,
@@ -52,6 +67,8 @@ export async function makeHarness(
     fetcher?: PageFetcher;
     alerts?: AlertsPort;
     browser?: string;
+    /** Wire the real AlertsService with a FakeDelivery instead of the recording stub. */
+    realAlerts?: boolean;
   } = {},
 ): Promise<Harness> {
   const handle = await openDatabase({ url: 'file::memory:' });
@@ -71,6 +88,14 @@ export async function makeHarness(
       },
     } satisfies PageFetcher);
 
+  const delivery = new FakeDelivery();
+  const realAlerts = new AlertsService({
+    db: handle.db,
+    registry,
+    delivery,
+    config: { alertCooldownMs: 12 * HOUR },
+  });
+
   const cycle = new CycleService({
     db: handle.db,
     clock,
@@ -88,12 +113,13 @@ export async function makeHarness(
       },
       () => 0.5,
     ),
-    alerts: options.alerts ?? alerts,
+    alerts: options.alerts ?? (options.realAlerts ? realAlerts : alerts),
     notifier,
     config: { ...defaultCycleConfig, ...options.config },
   });
 
-  let sequence = 0;
+  let listingSeq = 0;
+  let ruleSeq = 0;
   return {
     handle,
     clock,
@@ -103,18 +129,51 @@ export async function makeHarness(
     alerts,
     locks,
     cycle,
-    async addListing(url, overrides = {}) {
-      sequence++;
+    delivery,
+    async addRule(productId, type, params, overrides = {}) {
+      ruleSeq++;
       const now = clock.now().toISOString();
-      const productId = `P${sequence}`;
-      await handle.db.insert(products).values({
-        id: productId,
-        name: `Product ${sequence}`,
+      const id = `R${ruleSeq}`;
+      await handle.db.insert(rules).values({
+        id,
+        productId,
+        type,
+        params,
+        channels: [],
+        cooldownMinutes: 720,
         createdAt: now,
         updatedAt: now,
+        ...overrides,
       });
+      return id;
+    },
+    async makeDue(listingId) {
+      await handle.db
+        .update(listings)
+        .set({ nextCheckAt: clock.now().toISOString() })
+        .where(eq(listings.id, listingId));
+    },
+    async ruleState(ruleId) {
+      const [row] = await handle.db
+        .select()
+        .from(rules)
+        .where(eq(rules.id, ruleId));
+      return row?.state;
+    },
+    async addListing(url, overrides = {}) {
+      listingSeq++;
+      const now = clock.now().toISOString();
+      const productId = overrides.productId ?? `P${listingSeq}`;
+      if (!overrides.productId) {
+        await handle.db.insert(products).values({
+          id: productId,
+          name: `Product ${listingSeq}`,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
       await handle.db.insert(listings).values({
-        id: `L${sequence}`,
+        id: `L${listingSeq}`,
         productId,
         adapterId: adapter.id,
         url,
@@ -123,7 +182,7 @@ export async function makeHarness(
         updatedAt: now,
         ...overrides,
       });
-      return `L${sequence}`;
+      return `L${listingSeq}`;
     },
     async archiveProduct(productId) {
       await handle.db

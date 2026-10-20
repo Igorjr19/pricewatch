@@ -1,3 +1,8 @@
+import type {
+  AlertDelivery,
+  ChannelResult,
+  DeliveryRequest,
+} from '../../src/alerts/events.js';
 import { Clock } from '../../src/common/clock.js';
 import type {
   AlertsPort,
@@ -47,5 +52,23 @@ export class RecordingAlerts implements AlertsPort {
   async handleObservations(events: ObservedEvent[]) {
     this.batches.push(events);
     return { notificationsSent: this.notificationsSent };
+  }
+}
+
+/** Records alerts; `failAll` makes every channel fail, `failChannels` only the named ones. */
+export class FakeDelivery implements AlertDelivery {
+  readonly requests: DeliveryRequest[] = [];
+  failAll = false;
+  failChannels = new Set<string>();
+
+  async deliver(request: DeliveryRequest): Promise<ChannelResult[]> {
+    this.requests.push(request);
+    const channels =
+      request.channels.length > 0 ? request.channels : ['default'];
+    return channels.map((channel) =>
+      this.failAll || this.failChannels.has(channel)
+        ? { channel, ok: false, error: 'channel down' }
+        : { channel, ok: true },
+    );
   }
 }
