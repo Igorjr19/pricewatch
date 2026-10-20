@@ -2,7 +2,7 @@
 
 Self-hosted, single-user tool that monitors product prices in Brazilian online stores and notifies you (Telegram, SMTP or webhook) when a condition you defined is met.
 
-> **Status: pre-alpha (milestone M1 in progress).** The monitoring cycle and the alert engine are built and tested against fake stores. The real store adapters, the notification channels, the REST API and the Docker image are not wired yet, so there is nothing to run end to end today. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the exact state.
+> **Status: pre-alpha (milestone M1 in progress).** The monitoring cycle, the alert engine and the notification channels (Telegram, SMTP, webhook) are built and tested against fakes. The real store adapters, the REST API and the Docker image are not there yet, so there is nothing to run end to end today. See [`docs/PROGRESS.md`](docs/PROGRESS.md) for the exact state.
 
 ## How it works
 
@@ -53,6 +53,7 @@ The CLI has three commands: `pricewatch serve [--no-cron]`, `pricewatch run` and
 src/
   alerts/      pure evaluators (src/alerts/evaluators), AlertsService, rule params
   monitor/     adapter contract, collector, scheduler, run lock, cycle service
+  notifications/  channel parser, Telegram/SMTP/webhook notifiers, NotificationService
   db/          Drizzle schema and database access
   config/      env parsing and validation
   cli/         nest-commander commands
