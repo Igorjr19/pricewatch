@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "permissions": {
+    "allow": [
+      "Bash(pnpm check)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm test)",
+      "Bash(pnpm test *)",
+      "Bash(pnpm req *)",
+      "Bash(pnpm req:check*)",
+      "Bash(pnpm exec biome *)",
+      "Bash(pnpm exec vitest *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(rtk gain*)",
+      "Bash(rtk --version)"
+    ],
+    "ask": [
+      "Bash(pnpm test:live*)",
+      "Bash(pnpm fixtures:capture*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./data/**)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/format.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-check.sh",
+            "timeout": 180
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PATH=\"$HOME/.local/bin:$PATH\"; command -v rtk >/dev/null 2>&1 && rtk hook claude || exit 0",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
