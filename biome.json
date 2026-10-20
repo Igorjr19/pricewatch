@@ -1,6 +1,13 @@
 {
   "files": {
-    "includes": ["**", "!dist", "!.claude", "!.mcp.json", "!test/fixtures"]
+    "includes": [
+      "**",
+      "!dist",
+      "!.claude",
+      "!.mcp.json",
+      "!test/fixtures",
+      "!drizzle"
+    ]
   },
   "formatter": { "indentStyle": "space", "indentWidth": 2 },
   "javascript": { "formatter": { "quoteStyle": "single" } },

@@ -3,18 +3,20 @@
 Handoff between sessions. Keep it short; update at the end of every slice (REQ-DX-018).
 
 ## Current step
-Step 1 (scaffold) nearly done; step 2 (config + db) next. See docs/specs/09-dx.md §15.2.
+Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE` wiring in `serve`/`run` (REQ-DB-005). Step 3 (cycle with fakes) next. See docs/specs/09-dx.md §15.2.
 
 ## Done
 - Spec v0.4 split by area, reviewed (decisions R1–R7 in docs/specs/08-scope-and-open-items.md).
 - Agent setup: `.claude/settings.json`, `store-investigator` subagent (needs a session restart to register), RTK hook, Context7 MCP, `Concise` output style (local). `mise.toml` pins Node 24.
 - Scaffold: CLI stub (`src/main.ts`, `src/cli/`), `package.json`, tsconfig, Vitest + `unplugin-swc`, Biome, lefthook, `pnpm req` / `req:check`, `.env.example`. DI smoke test passes (REQ-DX-003); `pnpm check` green.
 - A6 (Kabum) closed; A1 (Mercado Livre) fixtures done, `http` viability open. Details and fixtures in §14.
+- Step 2: zod config (`src/config/`), Drizzle schema + first migration (`src/db/`, `drizzle/`), `migrate` command, DB integration tests (REQ-DB-002/003/004).
 - Fixtures: `test/fixtures/kabum/` (3 in stock, out of stock, not found), `test/fixtures/mercadolivre/` (blocked, out of stock, in stock).
 
 ## Next action
+0. Step 2 leftovers: `migrate` command is untested end to end (no `tsx`/build run yet); REQ-DB-005 and REQ-DB-006 (retention) land with the cycle.
 1. Finish step 1: remaining scripts (`test:live`, `fixtures:capture`, `dev:seed`, `db:generate`), `req` should print the acceptance block (REQ-DX-005), README/AGPL license file.
-2. Step 2: zod config + `DbModule` + migrations + `migrate`.
+2. Step 3: `Clock`, `FakeAdapter`, `FakeNotifier`, `CycleService` with lock and scheduler, with the §8.2 integration test.
 
 ## Fixture gaps (REQ-ADP-007)
 - Kabum: blocked/captcha (synthetic, labelled), plus a product without a Pix discount (`priceWithDiscount == price` → `pixPriceCents` null).

@@ -16,6 +16,7 @@
     "check": "tsc --noEmit && biome check --diagnostic-level=error . && vitest run --reporter=dot",
     "test": "vitest run --reporter=dot",
     "test:watch": "vitest",
+    "db:generate": "drizzle-kit generate",
     "req": "node scripts/req.mjs",
     "req:check": "node scripts/req-check.mjs",
     "prepare": "lefthook install"
