@@ -26,10 +26,7 @@ export class RunCommand extends CommandRunner {
         code = result.summary.status === 'failed' ? 1 : 0;
       }
     } catch (error) {
-      log.error(
-        { err: error instanceof Error ? error.message : String(error) },
-        'cycle failed',
-      );
+      log.error({ err: error }, 'cycle failed');
     } finally {
       runtime?.close();
     }

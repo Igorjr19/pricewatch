@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
-import { REDACT_PATHS } from '../common/logger.js';
+import { pinoOptions } from '../common/logger.js';
 import { AuthGuard } from './auth.guard.js';
 import { CatalogService } from './catalog.service.js';
 import { ApiController } from './controllers.js';
@@ -32,8 +32,7 @@ export class ApiModule {
       imports: [
         LoggerModule.forRoot({
           pinoHttp: {
-            level: deps.logLevel ?? 'silent',
-            redact: REDACT_PATHS,
+            ...pinoOptions(deps.logLevel ?? 'silent'),
             // Health probes would drown the log.
             autoLogging: { ignore: (req) => req.url === '/api/v1/health' },
           },

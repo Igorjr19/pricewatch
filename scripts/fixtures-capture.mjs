@@ -21,6 +21,7 @@ const { AdapterRegistry } = await import(
 const { builtinAdapters } = await import(
   '../dist/monitor/adapters/stores/index.js'
 );
+const { DEFAULT_USER_AGENT } = await import('../dist/config/config.js');
 const { HttpFetcher } = await import('../dist/monitor/http.fetcher.js');
 
 const registry = new AdapterRegistry(builtinAdapters({}));
@@ -32,9 +33,7 @@ if (!adapter || adapter.id !== adapterId) {
 
 const url = adapter.normalizeUrl(new URL(rawUrl));
 const fetcher = new HttpFetcher({
-  userAgent:
-    process.env.PW_USER_AGENT ??
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36',
+  userAgent: process.env.PW_USER_AGENT ?? DEFAULT_USER_AGENT,
   timeoutMs: 20_000,
 });
 const page = await fetcher.fetch(url, adapter);
@@ -42,21 +41,19 @@ const page = await fetcher.fetch(url, adapter);
 let expected;
 let expectedError;
 try {
-  const { externalId, ...rest } = await adapter.extract({
+  expected = await adapter.extract({
     strategy: 'http',
     url,
     html: page.html,
     httpStatus: page.status,
     finalUrl: page.finalUrl,
   });
-  expected = { ...rest, externalId };
 } catch (error) {
   expectedError = error?.constructor?.name ?? 'Error';
 }
 
 const dir = join('test/fixtures', adapterId);
 mkdirSync(dir, { recursive: true });
-const today = new Date().toISOString().slice(0, 10);
 const kind = expectedError
   ? expectedError.replace(/Error$/, '').toLowerCase()
   : expected.inStock
@@ -73,7 +70,7 @@ try {
 manifest.fixtures.push({
   file,
   url: url.toString(),
-  capturedAt: today,
+  capturedAt: new Date().toISOString().slice(0, 10),
   strategy: 'http',
   httpStatus: page.status,
   note: 'REVIEW: rename the file, check the expected values by hand and strip cookies/tokens/personal data',

@@ -22,6 +22,7 @@ export class ServeCommand extends CommandRunner {
   async run(_params: string[], options?: { cron?: boolean }): Promise<void> {
     const config = loadConfigOrExit('serve');
     const log = createLogger(config.logLevel);
+    const cron = options?.cron !== false;
     const shutdownController = new AbortController();
     const runtime = await buildRuntime(config);
     runtime.apiDeps.shutdownSignal = shutdownController.signal;
@@ -30,20 +31,13 @@ export class ServeCommand extends CommandRunner {
     });
     app.useLogger(app.get(Logger));
     await app.listen(config.port, '0.0.0.0');
-    log.info(
-      { port: config.port, cron: options?.cron !== false },
-      'pricewatch listening',
-    );
+    log.info({ port: config.port, cron }, 'pricewatch listening');
 
-    const ticker =
-      options?.cron === false
-        ? null
-        : new Ticker(runtime.cycle, config.tickMs, (error) =>
-            log.error(
-              { err: error instanceof Error ? error.message : error },
-              'cycle failed',
-            ),
-          );
+    const ticker = cron
+      ? new Ticker(runtime.cycle, config.tickMs, (error) =>
+          log.error({ err: error }, 'cycle failed'),
+        )
+      : null;
     ticker?.start();
     // Pick up listings that came due while the process was down; the run lock prevents overlap.
     if (ticker) void ticker.tick();

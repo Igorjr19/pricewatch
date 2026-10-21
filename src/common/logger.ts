@@ -1,15 +1,21 @@
-import pino, { type Logger } from 'pino';
+import pino, { type Logger, type LoggerOptions } from 'pino';
+import type { Config } from '../config/config.js';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = Config['logLevel'];
 
 /** Credentials never reach the logs (REQ-CFG-004). */
-export const REDACT_PATHS = [
+const REDACT_PATHS = [
   'req.headers.authorization',
   'req.headers["x-pricewatch-token"]',
   'res.headers["set-cookie"]',
 ];
 
-/** JSON logs on stdout (D10). Used outside Nest; `LoggerModule` shares the same level and redaction. */
+/** One source of truth for level and redaction, shared by the CLI logger and `LoggerModule`. */
+export function pinoOptions(level: LogLevel | 'silent'): LoggerOptions {
+  return { level, redact: REDACT_PATHS };
+}
+
+/** JSON logs on stdout (D10). Used outside Nest. */
 export function createLogger(level: LogLevel): Logger {
-  return pino({ level, redact: REDACT_PATHS });
+  return pino(pinoOptions(level));
 }
