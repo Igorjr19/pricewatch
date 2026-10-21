@@ -109,6 +109,7 @@ export async function buildRuntime(config: Config): Promise<Runtime> {
         runToken: config.runToken,
         version,
         browserAvailable: config.browser !== 'off',
+        logLevel: config.logLevel,
       },
     };
   } catch (error) {

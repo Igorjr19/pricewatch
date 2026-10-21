@@ -16,3 +16,9 @@ describe('REQ-DX-017 CLI wiring', () => {
     expect(mod.get(MigrateCommand)).toBeInstanceOf(MigrateCommand);
   });
 });
+
+describe('REQ-RUN-001 serve --no-cron', () => {
+  it('commander stores --no-cron as cron=false, so the handler must return false', () => {
+    expect(new ServeCommand().parseNoCron()).toBe(false);
+  });
+});

@@ -1,4 +1,5 @@
 import type { Clock } from '../common/clock.js';
+import type { LogLevel } from '../common/logger.js';
 import type { Database } from '../db/database.js';
 import type { AdapterRegistry } from '../monitor/adapters/registry.js';
 import type { CollectorService } from '../monitor/collector.service.js';
@@ -22,6 +23,8 @@ export interface ApiDeps {
   runToken?: string;
   version: string;
   browserAvailable: boolean;
+  /** HTTP request logging; omitted means silent (tests). */
+  logLevel?: LogLevel;
   /** Aborted on shutdown so a cycle started through `POST /run` stops too (REQ-RUN-006). */
   shutdownSignal?: AbortSignal;
 }
