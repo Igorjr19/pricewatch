@@ -132,6 +132,14 @@ describe('REQ-API-001 authentication', () => {
     expect(res.body).toEqual({ status: 'ok', version: '1.2.3', db: 'ok' });
   });
 
+  it('REQ-API-012 GET /health answers in under 200 ms', async () => {
+    const { http } = await boot();
+    const started = performance.now();
+    const res = await http.get('/api/v1/health');
+    expect(res.status).toBe(200);
+    expect(performance.now() - started).toBeLessThan(200);
+  });
+
   it('compares tokens without leaking length or prefix', () => {
     expect(safeEqual('abc', 'abc')).toBe(true);
     expect(safeEqual('abc', 'abd')).toBe(false);
@@ -209,6 +217,48 @@ describe('products, listings and rules', () => {
       .set(auth)
       .send({ url: 'not a url' });
     expect(bad.status).toBe(400);
+  });
+
+  it('REQ-API-005 every monetary field is an integer with the Cents suffix', async () => {
+    const { h, http, auth } = await boot();
+    h.adapter.script(
+      URL_A,
+      fakeResult({ priceCents: 123_400, pixPriceCents: 110_000 }),
+    );
+    const id = await newProduct(http, auth);
+    const probe = await http
+      .post(`/api/v1/products/${id}/listings?probe=true`)
+      .set(auth)
+      .send({ url: URL_A });
+    await http
+      .post(`/api/v1/products/${id}/rules`)
+      .set(auth)
+      .send({ type: 'target_price', params: { targetCents: 100_000 } });
+    const bodies = [
+      probe.body,
+      (await http.get(`/api/v1/products/${id}`).set(auth)).body,
+      (await http.get('/api/v1/products').set(auth)).body,
+      (await http.get(`/api/v1/products/${id}/rules`).set(auth)).body,
+    ];
+    const money: [string, unknown][] = [];
+    const walk = (node: unknown): void => {
+      if (Array.isArray(node)) {
+        for (const item of node) walk(item);
+        return;
+      }
+      if (node === null || typeof node !== 'object') return;
+      for (const [key, value] of Object.entries(node)) {
+        if (/price|cents/i.test(key) && typeof value !== 'object')
+          money.push([key, value]);
+        walk(value);
+      }
+    };
+    bodies.forEach(walk);
+    expect(money.length).toBeGreaterThan(4);
+    for (const [key, value] of money) {
+      expect(key, key).toMatch(/Cents$/);
+      if (value !== null) expect(Number.isInteger(value), key).toBe(true);
+    }
   });
 
   it('REQ-API-011 ?probe=true persists the first observation', async () => {
