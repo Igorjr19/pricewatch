@@ -27,7 +27,7 @@ Step 1 (scaffold) nearly done; step 2 (config + db) done except `PW_AUTO_MIGRATE
 - Traceability slice: `test/integration/run-command.spec.ts` (REQ-RUN-003 exit codes 0/2/1, REQ-DB-005, REQ-NOT-003); `serve --no-cron` test retitled REQ-RUN-002. `pnpm req:check`: 37 MUST without tests (down from 40). Second slice: `test/unit/container.spec.ts` (REQ-CNT-001..006, 009..011 as static Dockerfile/compose/.env.example checks), REQ-API-005 and REQ-API-012 in `api.spec.ts`; now 26; the rest are mostly REQ-CNT-*, REQ-API-005/012, REQ-DX-*, REQ-TST-*, M2 browser items. Node here is 22 (install with `--config.engine-strict=false`).
 
 ## Next action
-0. `pnpm req:check` is at 26 MUST without tests. Left: REQ-RUN-001 (serve + ticker, needs a test), REQ-DB-001, FET-002/004 (M2 browser), ADP-010 (spec 14 record), and process items DX-*/TST-* (tooling, not unit-testable; decide whether `req-check` should whitelist them).
+0. `pnpm req:check` now ignores DX/TST (toolchain-verified, decided with the user) and lists only REQ-FET-002/004, which belong to the M2 `BrowserFetcher`. Third slice added REQ-RUN-001 (ticker), REQ-DB-001 and REQ-ADP-010 checks.
 Waiting on the user (blocked flows, to retry from another network): Mercado Livre `http` live read, full `docker build`. Meanwhile, not blocked:
 1. Run `pnpm test:live` and `pnpm fixtures:capture kabum <url>` once on a normal network (both written, only dry-run offline).
 2. After ML works: end-to-end run with real stores.

@@ -3,6 +3,9 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
+// Process and tooling requirements (DX, TST) are verified by the toolchain, not by unit tests.
+const IGNORED_AREAS = /^REQ-(DX|TST)-/;
+
 const strict = process.argv.includes('--strict');
 
 function walk(dir, pred, out = []) {
@@ -36,7 +39,9 @@ const tests = [
   .map((f) => readFileSync(f, 'utf8'))
   .join('\n');
 
-const missing = [...musts].filter((id) => !tests.includes(id)).sort();
+const missing = [...musts]
+  .filter((id) => !IGNORED_AREAS.test(id) && !tests.includes(id))
+  .sort();
 if (missing.length)
   console.log(`${missing.length} MUST without tests:\n${missing.join('\n')}`);
 else console.log('all MUST requirements covered');

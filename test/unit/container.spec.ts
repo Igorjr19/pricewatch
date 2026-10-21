@@ -94,3 +94,39 @@ describe('REQ-CNT-011 image tags', () => {
     expect(dockerfile).not.toMatch(/AS full/);
   });
 });
+
+describe('REQ-DB-001 database access', () => {
+  const pkg = JSON.parse(read('package.json'));
+  const deps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
+
+  it('uses Drizzle over @libsql/client and no other database driver', () => {
+    expect(deps).toContain('drizzle-orm');
+    expect(deps).toContain('@libsql/client');
+    for (const other of ['pg', 'mysql2', 'better-sqlite3', 'sqlite3'])
+      expect(deps).not.toContain(other);
+  });
+
+  it('takes the URL from PW_DATABASE_URL', () => {
+    expect(read('src/config/config.ts')).toContain('PW_DATABASE_URL');
+  });
+});
+
+describe('REQ-ADP-010 adapter investigation record', () => {
+  const openItems = read('docs/specs/08-scope-and-open-items.md');
+  const adapters = [
+    ['kabum', 'A6'],
+    ['mercadolivre', 'A1'],
+  ] as const;
+
+  it.each(adapters)(
+    '%s has a real saved fixture and a section 14 entry (%s)',
+    (adapter, item) => {
+      const manifest = JSON.parse(
+        read(`test/fixtures/${adapter}/manifest.json`),
+      );
+      expect(manifest.fixtures.length).toBeGreaterThan(0);
+      const row = openItems.split('\n').find((l) => l.startsWith(`| ${item} `));
+      expect(row).toContain(`test/fixtures/${adapter}/`);
+    },
+  );
+});

@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fetchAttempts, notifications } from '../../src/db/schema.js';
 import { FakeAdapter } from '../../src/monitor/adapters/fake.adapter.js';
 import { KabumAdapter } from '../../src/monitor/adapters/stores/kabum.adapter.js';
@@ -239,5 +239,31 @@ describe('REQ-DX-009 FixturesFetcher', () => {
     await expect(
       fetcher.fetch(new URL('https://www.kabum.com.br/produto/2'), kabum),
     ).rejects.toBeInstanceOf(HttpError);
+  });
+});
+
+describe('REQ-RUN-001 serve ticker', () => {
+  it('triggers a cycle every tick until stopped', async () => {
+    vi.useFakeTimers();
+    try {
+      let runs = 0;
+      const cycle = {
+        run: async () => {
+          runs++;
+        },
+      };
+      const ticker = new Ticker(cycle as never, 5 * 60_000);
+      ticker.start();
+      expect(runs).toBe(0);
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+      expect(runs).toBe(1);
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(runs).toBe(3);
+      await ticker.stop();
+      await vi.advanceTimersByTimeAsync(10 * 60_000);
+      expect(runs).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
