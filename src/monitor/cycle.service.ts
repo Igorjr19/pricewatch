@@ -11,7 +11,7 @@ import {
   runs,
 } from '../db/schema.js';
 import type { AdapterRegistry } from './adapters/registry.js';
-import type { CollectorService } from './collector.service.js';
+import type { CollectorService, CollectResult } from './collector.service.js';
 import type { AlertsPort, ObservedEvent, SystemNotifier } from './ports.js';
 import { effectivePriceCents } from './price.js';
 import type { RunLockService } from './run-lock.service.js';
@@ -47,6 +47,11 @@ export type CycleResult =
   | { lockBusy: false; summary: RunSummary };
 
 type ListingRow = typeof listings.$inferSelect;
+
+export interface ProcessedListing {
+  outcome: 'success' | 'failure' | 'unavailable';
+  collected: CollectResult;
+}
 
 const LOCK_MARGIN_MS = 60_000;
 
@@ -137,7 +142,7 @@ export class CycleService {
         const listing = due[next++] as ListingRow;
         await domains.waitTurn(hostOf(listing.url));
         counts.checked++;
-        const outcome = await this.processListing(runId, listing, events);
+        const { outcome } = await this.processListing(runId, listing, events);
         if (outcome === 'success') counts.successes++;
         else if (outcome === 'failure') counts.failures++;
       }
@@ -214,21 +219,21 @@ export class CycleService {
   }
 
   private async processListing(
-    runId: string,
+    runId: string | null,
     listing: ListingRow,
     events: ObservedEvent[],
-  ): Promise<'success' | 'failure' | 'unavailable'> {
+  ): Promise<ProcessedListing> {
     const { db, clock, registry, collector, scheduler, config } = this.deps;
     const adapter = registry.get(listing.adapterId);
     const checkedAt = clock.now().toISOString();
 
-    const collected = adapter
+    const collected: CollectResult = adapter
       ? await collector.collect(adapter, new URL(listing.url))
-      : ({
+      : {
           outcome: 'parse_error',
           reason: `unknown adapter "${listing.adapterId}"`,
           attempts: [],
-        } as const);
+        };
 
     for (const attempt of collected.attempts) {
       await db.insert(fetchAttempts).values({
@@ -296,7 +301,7 @@ export class CycleService {
           'listing is being read again',
         );
       }
-      return 'success';
+      return { outcome: 'success', collected };
     }
 
     if (collected.outcome === 'strategy_unavailable') {
@@ -309,7 +314,7 @@ export class CycleService {
           updatedAt: checkedAt,
         })
         .where(eq(listings.id, listing.id));
-      return 'unavailable';
+      return { outcome: 'unavailable', collected };
     }
 
     const failures = listing.consecutiveFailures + 1;
@@ -335,7 +340,18 @@ export class CycleService {
         `${collected.outcome}: ${collected.reason}`,
       );
     }
-    return 'failure';
+    return { outcome: 'failure', collected };
+  }
+
+  /**
+   * One immediate check outside a cycle (REQ-API-011 probe): same persistence, backoff and
+   * `price.observed` handling as a scheduled check, with no run and no lock.
+   */
+  async checkNow(listing: ListingRow): Promise<ProcessedListing> {
+    const events: ObservedEvent[] = [];
+    const processed = await this.processListing(null, listing, events);
+    await this.deps.alerts.handleObservations(events, this.deps.clock.now());
+    return processed;
   }
 
   /** A system notice that cannot be delivered must not break the cycle. */

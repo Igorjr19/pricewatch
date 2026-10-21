@@ -32,8 +32,10 @@ afterEach(async () => {
   harness = undefined;
 });
 
-async function boot(options: { telegramStatus?: number } = {}) {
-  const h = await makeHarness();
+async function boot(
+  options: { telegramStatus?: number; realAlerts?: boolean } = {},
+) {
+  const h = await makeHarness({ realAlerts: options.realAlerts });
   harness = h;
   const calls: string[] = [];
   const fetchFn: FetchFn = async (url) => {
@@ -229,6 +231,23 @@ describe('products, listings and rules', () => {
       .get(`/api/v1/listings/${res.body.id}/attempts`)
       .set(auth);
     expect(attempts.body.items).toHaveLength(1);
+  });
+
+  it('REQ-API-011 a probe feeds the rules like a scheduled check', async () => {
+    const { h, http, auth } = await boot({ realAlerts: true });
+    h.adapter.script(URL_A, fakeResult({ priceCents: 150_000 }));
+    const id = await newProduct(http, auth);
+    await http
+      .post(`/api/v1/products/${id}/rules`)
+      .set(auth)
+      .send({ type: 'target_price', params: { targetCents: 200_000 } });
+
+    await http
+      .post(`/api/v1/products/${id}/listings?probe=true`)
+      .set(auth)
+      .send({ url: URL_A });
+
+    expect(h.delivery.requests).toHaveLength(1);
   });
 
   it('a failed probe still creates the listing and reports the outcome', async () => {

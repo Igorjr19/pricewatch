@@ -326,60 +326,15 @@ export class CatalogService {
       .from(listings)
       .where(eq(listings.id, listingId));
     const row = listing as ListingRow;
-    const adapter = this.deps.registry.get(row.adapterId);
-    if (!adapter) return null;
-    const collected = await this.deps.collector.collect(
-      adapter,
-      new URL(row.url),
-    );
-    for (const attempt of collected.attempts) {
-      await this.db.insert(fetchAttempts).values({
-        id: newId(),
-        listingId,
-        runId: null,
-        startedAt: attempt.startedAt,
-        durationMs: attempt.durationMs,
-        strategy: attempt.strategy,
-        outcome: attempt.outcome,
-        httpStatus: attempt.httpStatus,
-        errorMessage: attempt.errorMessage,
-      });
+    const { collected } = await this.deps.cycle.checkNow(row);
+    if (collected.outcome === 'ok') {
+      return {
+        outcome: 'ok' as const,
+        strategy: collected.strategy,
+        result: collected.result,
+      };
     }
-    if (collected.outcome !== 'ok') {
-      return { outcome: collected.outcome, reason: collected.reason };
-    }
-    const { result } = collected;
-    const now = this.now();
-    await this.db.insert(observations).values({
-      id: newId(),
-      listingId,
-      observedAt: now,
-      priceCents: result.priceCents,
-      pixPriceCents: result.pixPriceCents,
-      effectivePriceCents: effectivePriceCents(
-        result.priceCents,
-        result.pixPriceCents,
-      ),
-      installmentCount: result.installments?.count ?? null,
-      installmentPriceCents: result.installments?.priceCents ?? null,
-      inStock: result.inStock,
-      seller: result.seller,
-      title: result.title,
-      strategy: collected.strategy,
-    });
-    await this.db
-      .update(listings)
-      .set({
-        lastCheckedAt: now,
-        lastSuccessAt: now,
-        externalId: result.externalId,
-        nextCheckAt: this.deps.scheduler.nextAfterSuccess(
-          row.checkIntervalMinutes,
-        ),
-        updatedAt: now,
-      })
-      .where(eq(listings.id, listingId));
-    return { outcome: 'ok' as const, strategy: collected.strategy, result };
+    return { outcome: collected.outcome, reason: collected.reason };
   }
 
   async updateListing(id: string, body: UpdateListingBody) {
