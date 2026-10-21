@@ -17,9 +17,12 @@
     "test": "vitest run --reporter=dot",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --reporter=dot",
+    "test:live": "vitest run --config vitest.live.config.ts",
     "db:generate": "drizzle-kit generate",
     "req": "node scripts/req.mjs",
     "req:check": "node scripts/req-check.mjs",
+    "fixtures:capture": "pnpm -s build && node scripts/fixtures-capture.mjs",
+    "dev:seed": "pnpm -s build && node scripts/dev-seed.mjs",
     "prepare": "lefthook install"
   },
   "dependencies": {
@@ -31,7 +34,9 @@
     "class-validator": "^0.15.1",
     "drizzle-orm": "^0.45.4",
     "nest-commander": "^3.21.0",
+    "nestjs-pino": "^5.3.1",
     "nodemailer": "^10.1.7",
+    "pino": "^10.4.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "ulid": "^3.0.2",

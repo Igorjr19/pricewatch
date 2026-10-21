@@ -40,6 +40,9 @@ pnpm test <pattern> # one test or file
 pnpm test:coverage  # enforces ≥90% on the evaluators and the scheduler
 pnpm req REQ-ALR-012   # print a requirement from the spec
 pnpm req:check         # MUST requirements with no test citing their ID
+pnpm dev:seed          # sample product + fixture listings on a local file: database
+pnpm fixtures:capture <adapter> <url>   # save a real page as a fixture
+pnpm test:live         # real store requests, manual, never in CI
 pnpm db:generate       # generate a Drizzle migration after editing src/db/schema.ts
 ```
 
