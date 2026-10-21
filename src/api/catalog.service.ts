@@ -23,7 +23,6 @@ import {
   rules,
   runs,
 } from '../db/schema.js';
-import { effectivePriceCents } from '../monitor/price.js';
 import { describeChannel } from '../notifications/channel-parser.js';
 import { API_DEPS, type ApiDeps } from './deps.js';
 import type {
