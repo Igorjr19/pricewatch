@@ -17,7 +17,7 @@ describe('REQ-DX-017 CLI wiring', () => {
   });
 });
 
-describe('REQ-RUN-001 serve --no-cron', () => {
+describe('REQ-RUN-002 serve --no-cron', () => {
   it('commander stores --no-cron as cron=false, so the handler must return false', () => {
     expect(new ServeCommand().parseNoCron()).toBe(false);
   });
